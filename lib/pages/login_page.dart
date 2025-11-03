@@ -506,18 +506,28 @@ class _LoginPageState extends State<LoginPage> {
           ),
           ElevatedButton(
             onPressed: () async {
+              // Capture the dialog's BuildContext to avoid using the surrounding
+              // State's `context` across an async gap without proper checks.
+              final dialogContext = context;
+
               if (emailController.text.isNotEmpty) {
                 try {
                   await _authService.resetPassword(emailController.text.trim());
-                  Navigator.pop(context);
-                  ScaffoldMessenger.of(context).showSnackBar(
+
+                  // Guard State and BuildContext usage after async work.
+                  if (!mounted) return;
+                  if (!dialogContext.mounted) return;
+
+                  Navigator.pop(dialogContext);
+                  ScaffoldMessenger.of(dialogContext).showSnackBar(
                     const SnackBar(
                       content: Text('Password reset email sent!'),
                       backgroundColor: Colors.green,
                     ),
                   );
                 } catch (e) {
-                  ScaffoldMessenger.of(context).showSnackBar(
+                  if (!dialogContext.mounted) return;
+                  ScaffoldMessenger.of(dialogContext).showSnackBar(
                     SnackBar(
                       content: Text(e.toString().replaceFirst('Exception: ', '')),
                       backgroundColor: Colors.red,

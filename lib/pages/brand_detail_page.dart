@@ -26,12 +26,14 @@ class _BrandDetailPageState extends State<BrandDetailPage> {
   Future<void> _loadBrandCars() async {
     try {
       final allCarSpots = await _databaseService.getCarSpots();
+      if (!mounted) return;
       setState(() {
         _carSpots = allCarSpots.where((spot) => spot.brand == widget.brand).toList();
         _isLoading = false;
       });
     } catch (e) {
       debugPrint('BrandDetailPage: Error loading brand cars: $e');
+      if (!mounted) return;
       setState(() {
         _isLoading = false;
       });
