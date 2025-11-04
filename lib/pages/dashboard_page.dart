@@ -120,7 +120,7 @@ class _DashboardPageState extends State<DashboardPage> {
     }
 
     return Padding(
-      padding: const EdgeInsets.all(24.0),
+      padding: const EdgeInsets.symmetric(horizontal: 24.0, vertical: 32.0),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
@@ -214,7 +214,7 @@ class _DashboardPageState extends State<DashboardPage> {
     }
 
     return Padding(
-      padding: const EdgeInsets.all(24.0),
+      padding: const EdgeInsets.symmetric(horizontal: 24.0, vertical: 32.0),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
@@ -252,7 +252,7 @@ class _DashboardPageState extends State<DashboardPage> {
 
   Widget _buildSpotTab() {
     return Padding(
-      padding: const EdgeInsets.all(24.0),
+      padding: const EdgeInsets.symmetric(horizontal: 24.0, vertical: 32.0),
       child: Column(
         children: [
           const SizedBox(height: 40),
@@ -301,7 +301,7 @@ class _DashboardPageState extends State<DashboardPage> {
                         icon: const Icon(Icons.camera_alt),
                         label: const Text('Camera'),
                         style: ElevatedButton.styleFrom(
-                          backgroundColor: Colors.red[600],
+                          backgroundColor: Colors.purple[700],
                           foregroundColor: Colors.white,
                           padding: const EdgeInsets.symmetric(vertical: 16),
                         ),
@@ -314,7 +314,7 @@ class _DashboardPageState extends State<DashboardPage> {
                         icon: const Icon(Icons.photo_library),
                         label: const Text('Gallery'),
                         style: ElevatedButton.styleFrom(
-                          backgroundColor: Colors.blue[600],
+                          backgroundColor: Colors.purple[700],
                           foregroundColor: Colors.white,
                           padding: const EdgeInsets.symmetric(vertical: 16),
                         ),
@@ -358,7 +358,7 @@ class _DashboardPageState extends State<DashboardPage> {
                 ElevatedButton(
                   onPressed: _showAddCarDialog,
                   style: ElevatedButton.styleFrom(
-                    backgroundColor: Colors.green[600],
+                    backgroundColor: Colors.purple[700],
                     foregroundColor: Colors.white,
                     padding: const EdgeInsets.symmetric(horizontal: 32, vertical: 12),
                   ),
@@ -384,7 +384,7 @@ class _DashboardPageState extends State<DashboardPage> {
         final initials = userName.split(' ').map((e) => e.isNotEmpty ? e[0] : '').take(2).join('').toUpperCase();
         
         return Padding(
-          padding: const EdgeInsets.all(24.0),
+          padding: const EdgeInsets.symmetric(horizontal: 24.0, vertical: 32.0),
           child: Column(
             children: [
               const SizedBox(height: 40),
@@ -894,7 +894,7 @@ class _DashboardPageState extends State<DashboardPage> {
                 );
               }
             },
-            style: ElevatedButton.styleFrom(backgroundColor: Colors.red[600]),
+            style: ElevatedButton.styleFrom(backgroundColor: Colors.purple[700]),
             child: Text('Add', style: GoogleFonts.roboto(color: Colors.white)),
           ),
         ],

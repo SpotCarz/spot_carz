@@ -3,6 +3,7 @@ import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 import '../services/auth_service.dart';
+import '../widgets/background_container.dart';
 import 'dashboard_page.dart';
 import 'register_page.dart';
 
@@ -177,12 +178,15 @@ class _LoginPageState extends State<LoginPage> {
 
   @override
   Widget build(BuildContext context) {
-    return Scaffold(
-      backgroundColor: Colors.transparent,
-      body: SafeArea(
-        child: SingleChildScrollView(
-          padding: const EdgeInsets.all(24.0),
-          child: Column(
+    return BackgroundContainer(
+      child: Scaffold(
+        backgroundColor: Colors.transparent,
+        body: Stack(
+          children: [
+            SafeArea(
+              child: SingleChildScrollView(
+                padding: const EdgeInsets.symmetric(horizontal: 24.0, vertical: 32.0),
+                child: Column(
             crossAxisAlignment: CrossAxisAlignment.stretch,
             children: [
                 const SizedBox(height: 40),
@@ -202,23 +206,16 @@ class _LoginPageState extends State<LoginPage> {
                 Center(
                   child: Column(
                     children: [
-                      Container(
-                        padding: const EdgeInsets.all(16),
-                        decoration: BoxDecoration(
-                          color: Colors.red.withValues(alpha: 0.1),
-                          borderRadius: BorderRadius.circular(16),
-                          border: Border.all(color: Colors.red.withValues(alpha: 0.3)),
-                        ),
-                        child: Icon(
-                          Icons.directions_car,
-                          size: 40,
-                          color: Colors.red[400],
-                        ),
+                      Image.asset(
+                        'assets/images/logos/spotcarz_logo.png',
+                        height: 80,
+                        fit: BoxFit.contain,
+                        filterQuality: FilterQuality.high,
                       ),
-                      const SizedBox(height: 16),
+                      const SizedBox(height: 24),
                       Text(
                         'Welcome Back',
-                        style: GoogleFonts.orbitron(
+                        style: GoogleFonts.roboto(
                           fontSize: 28,
                           fontWeight: FontWeight.bold,
                           color: Colors.white,
@@ -324,31 +321,49 @@ class _LoginPageState extends State<LoginPage> {
                         alignment: Alignment.centerRight,
                         child: TextButton(
                           onPressed: () => _showForgotPasswordDialog(),
-                          child: Text(
-                            'Forgot Password?',
-                            style: GoogleFonts.roboto(
-                              color: Colors.red[400],
-                              fontSize: 14,
-                            ),
-                          ),
+                      child: Text(
+                        'Forgot Password?',
+                        style: GoogleFonts.roboto(
+                          color: Colors.purple[300],
+                          fontSize: 14,
+                        ),
+                      ),
                         ),
                       ),
                       
                       const SizedBox(height: 40),
                       
                       // Login Button
-                      SizedBox(
+                      Container(
                         width: double.infinity,
                         height: 56,
+                        decoration: BoxDecoration(
+                          gradient: LinearGradient(
+                            colors: [
+                              Colors.purple[700]!,
+                              Colors.purple[900]!,
+                            ],
+                            begin: Alignment.topLeft,
+                            end: Alignment.bottomRight,
+                          ),
+                          borderRadius: BorderRadius.circular(28),
+                          boxShadow: [
+                            BoxShadow(
+                              color: Colors.purple.withValues(alpha: 0.4),
+                              blurRadius: 20,
+                              offset: const Offset(0, 10),
+                            ),
+                          ],
+                        ),
                         child: ElevatedButton(
                           onPressed: _isLoading ? null : _login,
                           style: ElevatedButton.styleFrom(
-                            backgroundColor: Colors.red[600],
+                            backgroundColor: Colors.transparent,
                             foregroundColor: Colors.white,
+                            shadowColor: Colors.transparent,
                             shape: RoundedRectangleBorder(
                               borderRadius: BorderRadius.circular(28),
                             ),
-                            elevation: 8,
                           ),
                           child: _isLoading
                               ? const SizedBox(
@@ -364,7 +379,7 @@ class _LoginPageState extends State<LoginPage> {
                                   style: GoogleFonts.roboto(
                                     fontSize: 18,
                                     fontWeight: FontWeight.bold,
-                                    letterSpacing: 1,
+                                    letterSpacing: 1.5,
                                   ),
                                 ),
                         ),
@@ -422,7 +437,10 @@ class _LoginPageState extends State<LoginPage> {
                           ),
                         ],
                       ),
-                      
+                    ],
+                  ),
+                ),
+                
                 const SizedBox(height: 30),
                 
                 // Sign Up Link
@@ -446,7 +464,7 @@ class _LoginPageState extends State<LoginPage> {
                       child: Text(
                         'Sign Up',
                         style: GoogleFonts.roboto(
-                          color: Colors.red[400],
+                          color: Colors.purple[300],
                           fontSize: 16,
                           fontWeight: FontWeight.bold,
                         ),
@@ -456,11 +474,11 @@ class _LoginPageState extends State<LoginPage> {
                 ),
                 
                 const SizedBox(height: 40), // Add extra bottom padding
-                  ],
-                ),
+                ],
               ),
-            ],
-          ),
+            ),
+            ),
+          ],
         ),
       ),
     );
@@ -536,7 +554,7 @@ class _LoginPageState extends State<LoginPage> {
                 }
               }
             },
-            style: ElevatedButton.styleFrom(backgroundColor: Colors.red[600]),
+            style: ElevatedButton.styleFrom(backgroundColor: Colors.purple[700]),
             child: Text('Send', style: GoogleFonts.roboto(color: Colors.white)),
           ),
         ],

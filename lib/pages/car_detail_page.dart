@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
 import '../services/database_service.dart';
+import '../widgets/background_container.dart';
 
 class CarDetailPage extends StatelessWidget {
   final CarSpot carSpot;
@@ -9,14 +10,15 @@ class CarDetailPage extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return Scaffold(
-      backgroundColor: Colors.transparent,
-      body: SafeArea(
+    return BackgroundContainer(
+      child: Scaffold(
+        backgroundColor: Colors.transparent,
+        body: SafeArea(
         child: Column(
             children: [
               // Header
               Padding(
-                padding: const EdgeInsets.all(16.0),
+                padding: const EdgeInsets.symmetric(horizontal: 24.0, vertical: 32.0),
                 child: Row(
                   children: [
                     IconButton(
@@ -41,7 +43,7 @@ class CarDetailPage extends StatelessWidget {
               // Trading Card
               Expanded(
                 child: SingleChildScrollView(
-                  padding: const EdgeInsets.all(16.0),
+                  padding: const EdgeInsets.symmetric(horizontal: 24.0, vertical: 16.0),
                   child: Center(
                     child: _buildTradingCard(),
                   ),
@@ -49,6 +51,7 @@ class CarDetailPage extends StatelessWidget {
               ),
             ],
           ),
+      ),
       ),
     );
   }

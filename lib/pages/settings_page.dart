@@ -3,6 +3,7 @@ import 'package:google_fonts/google_fonts.dart';
 import '../services/auth_service.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 import '../services/database_service.dart';
+import '../widgets/background_container.dart';
 import 'login_page.dart';
 
 class SettingsPage extends StatefulWidget {
@@ -73,7 +74,7 @@ class _SettingsPageState extends State<SettingsPage> {
                 Navigator.pop(context);
               }
             },
-            style: ElevatedButton.styleFrom(backgroundColor: Colors.red[600]),
+            style: ElevatedButton.styleFrom(backgroundColor: Colors.purple[700]),
             child: Text('Delete', style: GoogleFonts.roboto(color: Colors.white)),
           ),
         ],
@@ -137,39 +138,62 @@ class _SettingsPageState extends State<SettingsPage> {
 
   @override
   Widget build(BuildContext context) {
-    return Scaffold(
-      appBar: AppBar(
-        backgroundColor: Colors.black,
-        iconTheme: const IconThemeData(color: Colors.white),
-        title: Text('Settings', style: GoogleFonts.roboto(color: Colors.white, fontWeight: FontWeight.bold)),
-        elevation: 0,
-      ),
-      backgroundColor: const Color(0xFF1a1a1a),
-      body: ListView(
-        padding: const EdgeInsets.all(24),
+    return BackgroundContainer(
+      child: Scaffold(
+        backgroundColor: Colors.transparent,
+        body: Stack(
         children: [
-          Container(
-            decoration: BoxDecoration(
-              color: Colors.white.withValues(alpha: 0.05),
-              borderRadius: BorderRadius.circular(16),
-              border: Border.all(color: Colors.white.withValues(alpha: 0.1)),
-            ),
-            child: Column(
-              children: [
-                ListTile(
-                  leading: const Icon(Icons.delete_forever, color: Colors.red),
-                  title: Text('Delete Account', style: GoogleFonts.roboto(color: Colors.white)),
-                  subtitle: Text('Permanently delete your data', style: GoogleFonts.roboto(color: Colors.grey[400])),
-                  trailing: _isDeleting
-                      ? const SizedBox(width: 20, height: 20, child: CircularProgressIndicator(strokeWidth: 2, color: Colors.red))
-                      : const Icon(Icons.arrow_forward_ios, color: Colors.grey, size: 16),
-                  onTap: _isDeleting ? null : _confirmAndDeleteAccount,
-                  shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
-                ),
-              ],
+          SafeArea(
+            child: SingleChildScrollView(
+              padding: const EdgeInsets.symmetric(horizontal: 24.0, vertical: 32.0),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  // Back Button
+                  IconButton(
+                    onPressed: () => Navigator.pop(context),
+                    icon: const Icon(Icons.arrow_back, color: Colors.white),
+                  ),
+                  
+                  const SizedBox(height: 20),
+                  
+                  // Title
+                  Text(
+                    'Settings',
+                    style: GoogleFonts.roboto(
+                      fontSize: 28,
+                      fontWeight: FontWeight.bold,
+                      color: Colors.white,
+                      letterSpacing: 1,
+                    ),
+                  ),
+                  
+                  const SizedBox(height: 40),
+                  
+                  // Settings List
+                  Container(
+                    decoration: BoxDecoration(
+                      color: Colors.white.withValues(alpha: 0.05),
+                      borderRadius: BorderRadius.circular(16),
+                      border: Border.all(color: Colors.white.withValues(alpha: 0.1)),
+                    ),
+                    child: ListTile(
+                      leading: const Icon(Icons.delete_forever, color: Colors.red),
+                      title: Text('Delete Account', style: GoogleFonts.roboto(color: Colors.white)),
+                      subtitle: Text('Permanently delete your data', style: GoogleFonts.roboto(color: Colors.grey[400])),
+                      trailing: _isDeleting
+                          ? const SizedBox(width: 20, height: 20, child: CircularProgressIndicator(strokeWidth: 2, color: Colors.red))
+                          : const Icon(Icons.arrow_forward_ios, color: Colors.grey, size: 16),
+                      onTap: _isDeleting ? null : _confirmAndDeleteAccount,
+                      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+                    ),
+                  ),
+                ],
+              ),
             ),
           ),
         ],
+      ),
       ),
     );
   }
