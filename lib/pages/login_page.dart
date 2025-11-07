@@ -207,7 +207,7 @@ class _LoginPageState extends State<LoginPage> {
                   child: Column(
                     children: [
                       Image.asset(
-                        'assets/images/logos/spotcarz_logo.png',
+                        'assets/images/logos/main_logo.png',
                         height: 80,
                         fit: BoxFit.contain,
                         filterQuality: FilterQuality.high,

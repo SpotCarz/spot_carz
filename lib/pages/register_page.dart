@@ -140,7 +140,7 @@ class _RegisterPageState extends State<RegisterPage> {
                   child: Column(
                     children: [
                       Image.asset(
-                        'assets/images/logos/spotcarz_logo.png',
+                        'assets/images/logos/main_logo.png',
                         height: 80,
                         fit: BoxFit.contain,
                         filterQuality: FilterQuality.high,

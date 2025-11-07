@@ -1,4 +1,4 @@
-name: spot_carz
+name: SpotCarz
 description: "An app for car spotters"
 # The following line prevents the package from being accidentally published to
 # pub.dev using `flutter pub publish`. This is preferred for private packages.
@@ -55,6 +55,7 @@ dev_dependencies:
   # package. See that file for information about deactivating specific lint
   # rules and activating additional ones.
   flutter_lints: ^5.0.0
+  flutter_launcher_icons: ^0.13.1
 
 # For information on the generic Dart part of this file, see the
 # following page: https://dart.dev/tools/pub/pubspec
@@ -70,6 +71,8 @@ flutter:
   # To add assets to your application, add an assets section, like this:
   assets:
     - assets/images/background.png
+    - assets/images/spotCarz_bg.png
+    - assets/images/spotCarz__main_bg.png
     - assets/images/logos/
     - assets/images/cards/
 
@@ -98,3 +101,13 @@ flutter:
   #
   # For details regarding fonts from package dependencies,
   # see https://flutter.dev/to/font-from-package
+
+# Configuration for app icons
+flutter_launcher_icons:
+  android: true
+  ios: true
+  image_path: "assets/images/logos/App_logo.png"
+  min_sdk_android: 21 # android min sdk min:16, default 21
+  adaptive_icon_background: "#000000" # Android adaptive icon background color
+  adaptive_icon_foreground: "assets/images/logos/App_logo.png" # Android adaptive icon foreground image
+  remove_alpha_ios: true # Remove alpha channel for iOS if needed

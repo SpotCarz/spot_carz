@@ -128,12 +128,18 @@ class _DashboardPageState extends State<DashboardPage> {
           Row(
             children: [
               Container(
-                padding: const EdgeInsets.all(12),
+                padding: const EdgeInsets.all(2),
                 decoration: BoxDecoration(
                   color: Colors.red.withValues(alpha: 0.1),
-                  borderRadius: BorderRadius.circular(12),
+                  borderRadius: BorderRadius.circular(50),
                 ),
-                child: Icon(Icons.directions_car, color: Colors.red[400], size: 24),
+                child: Image.asset(
+                  'assets/images/logos/Avatar_logo.png',
+                  width: 60,
+                  height: 60,
+                  fit: BoxFit.contain,
+                  filterQuality: FilterQuality.high,
+                ),
               ),
               const SizedBox(width: 16),
               Expanded(

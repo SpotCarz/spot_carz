@@ -185,33 +185,36 @@ class _AuthWrapperState extends State<AuthWrapper> {
     // Check current session first (for hot reload scenarios where stream might not emit immediately)
     final currentSession = Supabase.instance.client.auth.currentSession;
     
-    return BackgroundContainer(
-      child: StreamBuilder<AuthState>(
-        stream: _authService.authStateChanges,
-        builder: (context, snapshot) {
-          // Use session from stream, or fallback to current session for immediate check
-          final session = snapshot.hasData 
-              ? snapshot.data!.session 
-              : currentSession;
-          
-          // Show loading only if we truly don't know the state yet
-          if (!snapshot.hasData && currentSession == null && 
-              snapshot.connectionState == ConnectionState.waiting) {
-            return const Scaffold(
+    return StreamBuilder<AuthState>(
+      stream: _authService.authStateChanges,
+      builder: (context, snapshot) {
+        // Use session from stream, or fallback to current session for immediate check
+        final session = snapshot.hasData 
+            ? snapshot.data!.session 
+            : currentSession;
+        
+        // Show loading only if we truly don't know the state yet
+        if (!snapshot.hasData && currentSession == null && 
+            snapshot.connectionState == ConnectionState.waiting) {
+          return BackgroundContainer(
+            child: const Scaffold(
               backgroundColor: Colors.transparent,
               body: Center(
                 child: CircularProgressIndicator(color: Colors.red),
               ),
-            );
-          }
-          
-          if (session != null) {
-            return const DashboardPage();
-          } else {
-            return const HomePage();
-          }
-        },
-      ),
+            ),
+          );
+        }
+        
+        if (session != null) {
+          return BackgroundContainer(
+            child: const DashboardPage(),
+          );
+        } else {
+          // HomePage has its own background, don't wrap it
+          return const HomePage();
+        }
+      },
     );
   }
 }
