@@ -1,12 +1,241 @@
 import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
 import '../services/database_service.dart';
+import '../services/verification_service.dart';
+import '../services/auth_service.dart';
 import '../widgets/background_container.dart';
+import '../widgets/verification_badge.dart';
+import '../widgets/verification_result_widget.dart';
+import '../models/verification_result.dart';
+import '../examples/verification_example.dart';
 
-class CarDetailPage extends StatelessWidget {
+class CarDetailPage extends StatefulWidget {
   final CarSpot carSpot;
   
   const CarDetailPage({super.key, required this.carSpot});
+
+  @override
+  State<CarDetailPage> createState() => _CarDetailPageState();
+}
+
+class _CarDetailPageState extends State<CarDetailPage> {
+  final VerificationService _verificationService = VerificationService();
+  VerificationResult? _verificationResult;
+  bool _isLoadingVerification = false;
+
+  @override
+  void initState() {
+    super.initState();
+    _loadVerificationResult();
+  }
+
+  Future<void> _loadVerificationResult() async {
+    if (widget.carSpot.imageUrls.isEmpty) {
+      debugPrint('CarDetailPage: No image URLs available');
+      return;
+    }
+    
+    setState(() {
+      _isLoadingVerification = true;
+    });
+
+    try {
+      final authService = AuthService();
+      final userId = authService.currentUser?.id ?? 'anonymous';
+      
+      debugPrint('CarDetailPage: Loading verification history for user: $userId');
+      
+      // Try to get verification history and find matching image
+      final history = await _verificationService.getVerificationHistory(userId);
+      
+      debugPrint('CarDetailPage: Found ${history.length} verification results');
+      
+      if (history.isEmpty) {
+        debugPrint('CarDetailPage: No verification history found');
+        if (mounted) {
+          setState(() {
+            _isLoadingVerification = false;
+          });
+        }
+        return;
+      }
+      
+      // Find verification result for this image
+      final imageUrl = widget.carSpot.imageUrls.first;
+      debugPrint('CarDetailPage: Looking for verification for image: $imageUrl');
+      VerificationResult? result;
+      
+      // Try to match by image URL
+      try {
+        result = history.firstWhere(
+          (r) => r.imageUrl.contains(imageUrl.split('/').last) || 
+                 imageUrl.contains(r.imageUrl.split('/').last),
+        );
+        debugPrint('CarDetailPage: Found verification by URL match');
+      } catch (e) {
+        debugPrint('CarDetailPage: URL match failed, trying timestamp match');
+        // Try to match by timestamp (within 5 minutes of car spot creation)
+        try {
+          result = history.firstWhere(
+            (r) => r.timestamp.isAfter(widget.carSpot.createdAt.subtract(const Duration(minutes: 5))) &&
+                   r.timestamp.isBefore(widget.carSpot.createdAt.add(const Duration(minutes: 5))),
+          );
+          debugPrint('CarDetailPage: Found verification by timestamp match');
+        } catch (e2) {
+          // Use most recent verification if available
+          result = history.isNotEmpty ? history.first : null;
+          debugPrint('CarDetailPage: Using most recent verification: ${result != null}');
+        }
+      }
+
+      if (mounted) {
+        setState(() {
+          _verificationResult = result;
+          _isLoadingVerification = false;
+        });
+        debugPrint('CarDetailPage: Verification result loaded: ${result != null}');
+      }
+    } catch (e) {
+      debugPrint('CarDetailPage: Error loading verification: $e');
+      if (mounted) {
+        setState(() {
+          _isLoadingVerification = false;
+        });
+      }
+    }
+  }
+
+  void _showVerificationDetails() {
+    debugPrint('CarDetailPage: _showVerificationDetails called');
+    debugPrint('CarDetailPage: _verificationResult is ${_verificationResult != null ? "not null" : "null"}');
+    
+    if (_verificationResult == null) {
+      debugPrint('CarDetailPage: No verification result available');
+      
+      // Show a dialog explaining why there's no verification
+      showDialog(
+        context: context,
+        builder: (context) => AlertDialog(
+          title: Text(
+            'No Verification Available',
+            style: GoogleFonts.roboto(
+              fontSize: 20,
+              fontWeight: FontWeight.bold,
+            ),
+          ),
+          backgroundColor: const Color.fromARGB(255, 155, 155, 155),
+          content: Column(
+            mainAxisSize: MainAxisSize.min,
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Text(
+                'This car spot has not been verified yet.',
+                style: GoogleFonts.roboto(fontSize: 14),
+              ),
+              const SizedBox(height: 12),
+              Text(
+                'To verify an image:',
+                style: GoogleFonts.roboto(
+                  fontSize: 14,
+                  fontWeight: FontWeight.bold,
+                ),
+              ),
+              const SizedBox(height: 8),
+              Text(
+                '1. Go to the verification example page\n'
+                '2. Select an image\n'
+                '3. Click "Verify Image Authenticity"\n'
+                '4. The verification will be saved automatically',
+                style: GoogleFonts.roboto(fontSize: 12),
+              ),
+            ],
+          ),
+          actions: [
+            TextButton(
+              onPressed: () => Navigator.pop(context),
+              child: const Text('Close', style: TextStyle(color: Colors.red, fontWeight: FontWeight.bold)),
+            ),
+            ElevatedButton(
+              onPressed: () {
+                Navigator.pop(context); // Close the dialog
+                Navigator.push(
+                  context,
+                  MaterialPageRoute(
+                    builder: (context) => const VerificationExamplePage(),
+                  ),
+                );
+              },
+              style: ElevatedButton.styleFrom(
+                backgroundColor: const Color.fromARGB(255, 145, 1, 202),
+                foregroundColor: Colors.white,
+              ),
+              child: const Text('Go to Verification Page'),
+            ),
+          ],
+        ),
+      );
+      return;
+    }
+    
+    debugPrint('CarDetailPage: Showing verification dialog with result');
+    debugPrint('CarDetailPage: Verification score: ${_verificationResult!.verificationScore}');
+    debugPrint('CarDetailPage: Verification status: ${_verificationResult!.status.displayName}');
+    
+    showDialog(
+      context: context,
+      barrierDismissible: true,
+      builder: (context) => Dialog(
+        shape: RoundedRectangleBorder(
+          borderRadius: BorderRadius.circular(16),
+        ),
+        child: Container(
+          constraints: const BoxConstraints(maxWidth: 400, maxHeight: 600),
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              // Header
+              Container(
+                padding: const EdgeInsets.all(20),
+                decoration: BoxDecoration(
+                  color: Colors.grey[100],
+                  borderRadius: const BorderRadius.only(
+                    topLeft: Radius.circular(16),
+                    topRight: Radius.circular(16),
+                  ),
+                ),
+                child: Row(
+                  children: [
+                    Expanded(
+                      child: Text(
+                        'Verification Details',
+                        style: GoogleFonts.roboto(
+                          fontSize: 20,
+                          fontWeight: FontWeight.bold,
+                        ),
+                      ),
+                    ),
+                    IconButton(
+                      icon: const Icon(Icons.close),
+                      onPressed: () => Navigator.pop(context),
+                      padding: EdgeInsets.zero,
+                      constraints: const BoxConstraints(),
+                    ),
+                  ],
+                ),
+              ),
+              // Content
+              Flexible(
+                child: SingleChildScrollView(
+                  padding: const EdgeInsets.all(20),
+                  child: VerificationResultWidget(result: _verificationResult!),
+                ),
+              ),
+            ],
+          ),
+        ),
+      ),
+    );
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -36,6 +265,44 @@ class CarDetailPage extends StatelessWidget {
                         ),
                       ),
                     ),
+                    // Verification Badge
+                    if (_isLoadingVerification)
+                      const SizedBox(
+                        width: 20,
+                        height: 20,
+                        child: CircularProgressIndicator(
+                          strokeWidth: 2,
+                          color: Colors.white,
+                        ),
+                      )
+                    else if (_verificationResult != null)
+                      Material(
+                        color: Colors.transparent,
+                        child: InkWell(
+                          onTap: () {
+                            debugPrint('CarDetailPage: Header badge tapped');
+                            _showVerificationDetails();
+                          },
+                          borderRadius: BorderRadius.circular(20),
+                          child: VerificationBadge(
+                            status: _verificationResult!.status,
+                            score: _verificationResult!.verificationScore,
+                            showScore: true,
+                          ),
+                        ),
+                      )
+                    else
+                      Material(
+                        color: Colors.transparent,
+                        child: InkWell(
+                          onTap: () {
+                            debugPrint('CarDetailPage: Unverified badge tapped');
+                            _showVerificationDetails();
+                          },
+                          borderRadius: BorderRadius.circular(20),
+                          child: const UnverifiedBadge(),
+                        ),
+                      ),
                   ],
                 ),
               ),
@@ -113,7 +380,7 @@ class CarDetailPage extends StatelessWidget {
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
                 Text(
-                  carSpot.brand.replaceAll('_', ' ').toUpperCase(),
+                  widget.carSpot.brand.replaceAll('_', ' ').toUpperCase(),
                   style: GoogleFonts.roboto(
                     fontSize: 16,
                     fontWeight: FontWeight.bold,
@@ -141,7 +408,7 @@ class CarDetailPage extends StatelessWidget {
               borderRadius: BorderRadius.circular(12),
             ),
             child: Text(
-              '${carSpot.rarityScore}/10',
+              '${widget.carSpot.rarityScore}/10',
               style: GoogleFonts.roboto(
                 fontSize: 12,
                 fontWeight: FontWeight.bold,
@@ -167,15 +434,39 @@ class CarDetailPage extends StatelessWidget {
       ),
       child: ClipRRect(
         borderRadius: BorderRadius.circular(10),
-        child: carSpot.imageUrls.isNotEmpty
-            ? Image.network(
-                carSpot.imageUrls.first,
-                fit: BoxFit.cover,
-                errorBuilder: (context, error, stackTrace) {
-                  return _buildPlaceholderImage();
-                },
-              )
-            : _buildPlaceholderImage(),
+        child: Stack(
+          children: [
+            widget.carSpot.imageUrls.isNotEmpty
+                ? Image.network(
+                    widget.carSpot.imageUrls.first,
+                    fit: BoxFit.cover,
+                    errorBuilder: (context, error, stackTrace) {
+                      return _buildPlaceholderImage();
+                    },
+                  )
+                : _buildPlaceholderImage(),
+            // Verification badge overlay on image
+            if (_verificationResult != null)
+              Positioned(
+                top: 8,
+                right: 8,
+                child: Material(
+                  color: Colors.transparent,
+                  child: InkWell(
+                    onTap: () {
+                      debugPrint('CarDetailPage: Image badge tapped');
+                      _showVerificationDetails();
+                    },
+                    borderRadius: BorderRadius.circular(20),
+                    child: VerificationBadge(
+                      status: _verificationResult!.status,
+                      score: _verificationResult!.verificationScore,
+                    ),
+                  ),
+                ),
+              ),
+          ],
+        ),
       ),
     );
   }
@@ -222,7 +513,7 @@ class CarDetailPage extends StatelessWidget {
         children: [
           // Model Name
           Text(
-            carSpot.model.toUpperCase(),
+            widget.carSpot.model.toUpperCase(),
             style: GoogleFonts.roboto(
               fontSize: 20,
               fontWeight: FontWeight.bold,
@@ -240,7 +531,7 @@ class CarDetailPage extends StatelessWidget {
           const SizedBox(height: 16),
           
           // Description
-          if (carSpot.description != null && carSpot.description!.isNotEmpty)
+          if (widget.carSpot.description != null && widget.carSpot.description!.isNotEmpty)
             Container(
               padding: const EdgeInsets.all(12),
               decoration: BoxDecoration(
@@ -248,7 +539,7 @@ class CarDetailPage extends StatelessWidget {
                 borderRadius: BorderRadius.circular(8),
               ),
               child: Text(
-                carSpot.description!,
+                widget.carSpot.description!,
                 style: GoogleFonts.roboto(
                   fontSize: 12,
                   color: Colors.white.withValues(alpha: 0.9),
@@ -257,6 +548,43 @@ class CarDetailPage extends StatelessWidget {
                 textAlign: TextAlign.center,
               ),
             ),
+          
+          // Verification Info Button
+          if (_verificationResult != null) ...[
+            const SizedBox(height: 12),
+            GestureDetector(
+              onTap: _showVerificationDetails,
+              child: Container(
+                padding: const EdgeInsets.all(12),
+                decoration: BoxDecoration(
+                  color: Colors.white.withValues(alpha: 0.1),
+                  borderRadius: BorderRadius.circular(8),
+                  border: Border.all(
+                    color: Colors.white.withValues(alpha: 0.3),
+                  ),
+                ),
+                child: Row(
+                  mainAxisAlignment: MainAxisAlignment.center,
+                  children: [
+                    Icon(
+                      Icons.verified,
+                      size: 16,
+                      color: Colors.white.withValues(alpha: 0.9),
+                    ),
+                    const SizedBox(width: 8),
+                    Text(
+                      'View Verification Details',
+                      style: GoogleFonts.roboto(
+                        fontSize: 12,
+                        fontWeight: FontWeight.w500,
+                        color: Colors.white.withValues(alpha: 0.9),
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+            ),
+          ],
         ],
       ),
     );
@@ -266,7 +594,7 @@ class CarDetailPage extends StatelessWidget {
     return Row(
       children: [
         Expanded(
-          child: _buildStatItem('YEAR', carSpot.year?.toString() ?? 'N/A'),
+          child: _buildStatItem('YEAR', widget.carSpot.year?.toString() ?? 'N/A'),
         ),
         Container(
           width: 1,
@@ -274,7 +602,7 @@ class CarDetailPage extends StatelessWidget {
           color: Colors.white.withValues(alpha: 0.2),
         ),
         Expanded(
-          child: _buildStatItem('COLOR', carSpot.color ?? 'N/A'),
+          child: _buildStatItem('COLOR', widget.carSpot.color ?? 'N/A'),
         ),
         Container(
           width: 1,
@@ -282,7 +610,7 @@ class CarDetailPage extends StatelessWidget {
           color: Colors.white.withValues(alpha: 0.2),
         ),
         Expanded(
-          child: _buildStatItem('SPOTTED', carSpot.spottedAt.toString().split(' ')[0]),
+          child: _buildStatItem('SPOTTED', widget.carSpot.spottedAt.toString().split(' ')[0]),
         ),
       ],
     );
@@ -326,14 +654,14 @@ class CarDetailPage extends StatelessWidget {
         mainAxisAlignment: MainAxisAlignment.spaceBetween,
         children: [
           // Likes
-          _buildFooterItem(Icons.favorite, carSpot.likesCount.toString()),
+          _buildFooterItem(Icons.favorite, widget.carSpot.likesCount.toString()),
           
           // Comments
-          _buildFooterItem(Icons.comment, carSpot.commentsCount.toString()),
+          _buildFooterItem(Icons.comment, widget.carSpot.commentsCount.toString()),
           
           // License Plate
-          if (carSpot.licensePlate != null && carSpot.licensePlate!.isNotEmpty)
-            _buildFooterItem(Icons.local_parking, carSpot.licensePlate!),
+          if (widget.carSpot.licensePlate != null && widget.carSpot.licensePlate!.isNotEmpty)
+            _buildFooterItem(Icons.local_parking, widget.carSpot.licensePlate!),
         ],
       ),
     );
@@ -362,7 +690,7 @@ class CarDetailPage extends StatelessWidget {
 
   Color _getCardColor() {
     // Different colors based on brand
-    switch (carSpot.brand.toUpperCase()) {
+    switch (widget.carSpot.brand.toUpperCase()) {
       case 'FERRARI':
         return const Color(0xFFDC143C); // Crimson Red
       case 'BMW':

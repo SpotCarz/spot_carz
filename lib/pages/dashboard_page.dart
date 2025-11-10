@@ -11,6 +11,7 @@ import 'login_page.dart';
 import 'brand_detail_page.dart';
 import 'car_detail_page.dart';
 import 'settings_page.dart';
+import '../examples/verification_example.dart';
 
 class DashboardPage extends StatefulWidget {
   const DashboardPage({super.key});
@@ -471,6 +472,12 @@ class _DashboardPageState extends State<DashboardPage> {
                       Navigator.push(
                         context,
                         MaterialPageRoute(builder: (context) => const SettingsPage()),
+                      );
+                    }),
+                    _buildProfileOption(Icons.verified_user, 'Verify Images', () {
+                      Navigator.push(
+                        context,
+                        MaterialPageRoute(builder: (context) => const VerificationExamplePage()),
                       );
                     }),
                     _buildProfileOption(Icons.notifications, 'Notifications', () {}),

@@ -1,6 +1,7 @@
 import 'dart:io';
 import 'package:flutter/foundation.dart';
 import 'supabase_service.dart';
+import '../data/car_brands.dart';
 
 class CarSpot {
   final String? id;
@@ -126,6 +127,125 @@ class DatabaseService {
     }
   }
   
+  /// Cache for valid brand names from car_brands.dart (normalized to database format)
+  List<String>? _cachedValidBrands;
+  
+  /// Gets valid brand names from car_brands.dart and normalizes them to database enum format
+  /// Database enum uses lowercase format (e.g., "porsche", "ferrari")
+  List<String> _getValidBrandsFromCarBrandsData() {
+    // Get all brand names from car_brands.dart
+    final brands = CarBrandsData.brands.map((brand) => brand.name).toList();
+    
+    // Normalize to database enum format (lowercase)
+    final normalizedBrands = brands.map((brand) => brand.toLowerCase()).toList();
+    
+    debugPrint('DatabaseService: Found ${normalizedBrands.length} valid brands from car_brands.dart: ${normalizedBrands.join(", ")}');
+    
+    return normalizedBrands;
+  }
+  
+  /// Gets all possible brand name variations to try
+  /// Maps from car_brands.dart format (uppercase) to database enum format (lowercase)
+  List<String> _getBrandVariations(String brand) {
+    final trimmed = brand.trim();
+    final variations = <String>{};
+    
+    // Get valid brands from car_brands.dart if not cached
+    _cachedValidBrands ??= _getValidBrandsFromCarBrandsData();
+    
+    // Database enum uses lowercase format (e.g., "porsche", "ferrari")
+    // So convert the brand from car_brands.dart format (uppercase) to lowercase
+    final lowercaseBrand = trimmed.toLowerCase();
+    
+    // Check if this brand exists in car_brands.dart (case-insensitive)
+    final upperBrand = trimmed.toUpperCase();
+    bool foundInCarBrands = false;
+    for (String validBrand in _cachedValidBrands!) {
+      if (validBrand.toUpperCase() == upperBrand) {
+        variations.add(validBrand); // Use the exact lowercase format
+        foundInCarBrands = true;
+        break;
+      }
+    }
+    
+    // If brand not found in car_brands.dart, log a warning
+    if (!foundInCarBrands) {
+      debugPrint('DatabaseService: Brand "$brand" not found in car_brands.dart. Valid brands: ${_cachedValidBrands!.join(", ")}');
+    }
+    
+    // Primary: lowercase (database enum format)
+    variations.add(lowercaseBrand);
+    
+    // Also try variations in case the enum uses different formats
+    final words = trimmed.toLowerCase().split(RegExp(r'[\s_-]+'));
+    
+    // Lowercase with underscores
+    variations.add(lowercaseBrand.replaceAll(RegExp(r'[\s-]+'), '_'));
+    
+    // Title Case (e.g., "Audi", "Mercedes Benz")
+    final titleCase = words.map((word) {
+      if (word.isEmpty) return '';
+      return word[0].toUpperCase() + word.substring(1);
+    }).join(' ');
+    variations.add(titleCase);
+    
+    // Title Case with underscores
+    variations.add(words.map((word) {
+      if (word.isEmpty) return '';
+      return word[0].toUpperCase() + word.substring(1);
+    }).join('_'));
+    
+    // Uppercase
+    variations.add(trimmed.toUpperCase());
+    
+    // Uppercase with underscores
+    variations.add(trimmed.toUpperCase().replaceAll(RegExp(r'[\s-]+'), '_'));
+    
+    // Original
+    variations.add(trimmed);
+    
+    return variations.toList();
+  }
+
+  /// Checks if an error is an enum validation error (code 22P02)
+  bool _isEnumError(dynamic error) {
+    final errorString = error.toString().toLowerCase();
+    return errorString.contains('22p02') || 
+           errorString.contains('invalid input value for enum') ||
+           errorString.contains('car_brand');
+  }
+
+  /// Adds a brand to the database enum if it doesn't exist
+  Future<void> _addBrandToEnum(String brandName) async {
+    try {
+      // Normalize brand name to lowercase (database enum format)
+      final normalizedBrand = brandName.toLowerCase();
+      
+      debugPrint('DatabaseService: Attempting to add brand "$normalizedBrand" to enum');
+      
+      // Call the database function to add the brand to the enum
+      await _supabase.client.rpc('add_brand_to_enum', params: {
+        'brand_name': normalizedBrand,
+      });
+      
+      debugPrint('DatabaseService: Successfully added brand "$normalizedBrand" to enum');
+    } catch (e) {
+      final errorString = e.toString();
+      debugPrint('DatabaseService: Error adding brand to enum: $e');
+      
+      // Check if the function doesn't exist
+      if (errorString.contains('PGRST202') || 
+          errorString.contains('Could not find the function') ||
+          errorString.contains('schema cache')) {
+        debugPrint('DatabaseService: ERROR - The add_brand_to_enum function is not found in the database.');
+        debugPrint('DatabaseService: Please run the migration: supabase_migrations/add_brand_to_enum.sql');
+        debugPrint('DatabaseService: Go to Supabase Dashboard → SQL Editor → Run the migration file');
+        debugPrint('DatabaseService: Then wait 1-2 minutes for PostgREST to refresh its schema cache.');
+      }
+      // Don't throw - we'll try the insert anyway
+    }
+  }
+
   Future<CarSpot> createCarSpot({
     required String brand,
     required String model,
@@ -133,100 +253,127 @@ class DatabaseService {
     File? imageFile,
   }) async {
     try {
-      // Try different brand formats to find what works
-      String finalBrand = brand;
+      // Get all possible brand variations to try
+      final brandVariations = _getBrandVariations(brand);
       
-      // Try the brand as-is first
-      try {
-        List<String> imageUrls = [];
-        if (imageFile != null) {
-          final imageUrl = await uploadImage(imageFile);
-          if (imageUrl != null) {
-            imageUrls.add(imageUrl);
+      // Try each variation until one works
+      Exception? lastError;
+      bool triedAddingToEnum = false;
+      
+      for (String brandVariant in brandVariations) {
+        try {
+          List<String> imageUrls = [];
+          if (imageFile != null) {
+            final imageUrl = await uploadImage(imageFile);
+            if (imageUrl != null) {
+              imageUrls.add(imageUrl);
+            }
           }
-        }
-        
-        final carSpot = CarSpot(
-          id: null, // Let database generate UUID
-          spotterId: _supabase.currentUser!.id,
-          brand: finalBrand,
-          model: model,
-          year: int.tryParse(year),
-          imageUrls: imageUrls,
-          spottedAt: DateTime.now(),
-          createdAt: DateTime.now(),
-          updatedAt: DateTime.now(),
-        );
-        
-        final response = await _supabase.client
-            .from('car_spots')
-            .insert(carSpot.toJson())
-            .select()
-            .single();
-        
-        final createdSpot = CarSpot.fromJson(response);
-        
-        // Create related records
-        await _createRelatedRecords(createdSpot);
-        
-        return createdSpot;
-      } catch (e) {
-        debugPrint('DatabaseService: Brand $finalBrand failed, trying alternatives: $e');
-        
-        // Try alternative formats
-        final alternatives = [
-          brand.toUpperCase(),
-          brand.toLowerCase(),
-          brand.replaceAll('_', ' '),
-          brand.replaceAll(' ', '_'),
-        ];
-        
-        for (String altBrand in alternatives) {
-          if (altBrand == finalBrand) continue;
           
-          try {
-            List<String> imageUrls = [];
-            if (imageFile != null) {
-              final imageUrl = await uploadImage(imageFile);
-              if (imageUrl != null) {
-                imageUrls.add(imageUrl);
+          final carSpot = CarSpot(
+            id: null, // Let database generate UUID
+            spotterId: _supabase.currentUser!.id,
+            brand: brandVariant,
+            model: model,
+            year: int.tryParse(year),
+            imageUrls: imageUrls,
+            spottedAt: DateTime.now(),
+            createdAt: DateTime.now(),
+            updatedAt: DateTime.now(),
+          );
+          
+          final response = await _supabase.client
+              .from('car_spots')
+              .insert(carSpot.toJson())
+              .select()
+              .single();
+          
+          final createdSpot = CarSpot.fromJson(response);
+          
+          // Create related records
+          await _createRelatedRecords(createdSpot);
+          
+          debugPrint('DatabaseService: Successfully used brand: $brandVariant');
+          return createdSpot;
+        } catch (e) {
+          debugPrint('DatabaseService: Brand "$brandVariant" failed: $e');
+          
+          // If this is an enum error and we haven't tried adding to enum yet, try adding it
+          if (_isEnumError(e) && !triedAddingToEnum) {
+            triedAddingToEnum = true;
+            debugPrint('DatabaseService: Enum error detected, attempting to add brand to enum');
+            
+            // Check if brand exists in car_brands.dart before adding
+            final brandFromCarBrands = _cachedValidBrands?.any((b) => b.toUpperCase() == brand.toUpperCase()) ?? false;
+            if (brandFromCarBrands) {
+              // Try adding the normalized brand (lowercase) to the enum
+              await _addBrandToEnum(brandVariant.toLowerCase());
+              
+              // Retry the insert with the same brand variant
+              try {
+                List<String> imageUrls = [];
+                if (imageFile != null) {
+                  final imageUrl = await uploadImage(imageFile);
+                  if (imageUrl != null) {
+                    imageUrls.add(imageUrl);
+                  }
+                }
+                
+                final carSpot = CarSpot(
+                  id: null,
+                  spotterId: _supabase.currentUser!.id,
+                  brand: brandVariant.toLowerCase(), // Use lowercase after adding to enum
+                  model: model,
+                  year: int.tryParse(year),
+                  imageUrls: imageUrls,
+                  spottedAt: DateTime.now(),
+                  createdAt: DateTime.now(),
+                  updatedAt: DateTime.now(),
+                );
+                
+                final response = await _supabase.client
+                    .from('car_spots')
+                    .insert(carSpot.toJson())
+                    .select()
+                    .single();
+                
+                final createdSpot = CarSpot.fromJson(response);
+                await _createRelatedRecords(createdSpot);
+                
+                debugPrint('DatabaseService: Successfully created car spot after adding brand to enum');
+                return createdSpot;
+              } catch (retryError) {
+                debugPrint('DatabaseService: Retry after adding to enum failed: $retryError');
+                lastError = retryError is Exception ? retryError : Exception(retryError.toString());
               }
             }
-            
-            final carSpot = CarSpot(
-              id: null, // Let database generate UUID
-              spotterId: _supabase.currentUser!.id,
-              brand: altBrand,
-              model: model,
-              year: int.tryParse(year),
-              imageUrls: imageUrls,
-              spottedAt: DateTime.now(),
-              createdAt: DateTime.now(),
-              updatedAt: DateTime.now(),
-            );
-            
-            final response = await _supabase.client
-                .from('car_spots')
-                .insert(carSpot.toJson())
-                .select()
-                .single();
-            
-            final createdSpot = CarSpot.fromJson(response);
-            
-            // Create related records
-            await _createRelatedRecords(createdSpot);
-            
-            debugPrint('DatabaseService: Successfully used brand: $altBrand');
-            return createdSpot;
-          } catch (altError) {
-            debugPrint('DatabaseService: Brand $altBrand also failed: $altError');
-            continue;
           }
+          
+          lastError = e is Exception ? e : Exception(e.toString());
+          continue;
         }
-        
-        // If all alternatives failed, throw the original error
-        rethrow;
       }
+      
+      // If all variations failed, throw the last error with helpful message
+      final brandFromCarBrands = _cachedValidBrands?.any((b) => b.toUpperCase() == brand.toUpperCase()) ?? false;
+      
+      String errorMsg = 'Failed to create car spot: Brand "$brand" ';
+      if (brandFromCarBrands) {
+        errorMsg += 'exists in car_brands.dart but failed database validation. ';
+        if (triedAddingToEnum) {
+          errorMsg += 'Attempted to add to enum but insert still failed. ';
+        }
+        errorMsg += 'Tried variations: ${brandVariations.join(", ")}.';
+      } else {
+        errorMsg += 'is not found in car_brands.dart. ';
+        errorMsg += 'Valid brands: ${_cachedValidBrands?.join(", ") ?? "unknown"}.';
+      }
+      
+      if (lastError != null) {
+        errorMsg += ' Last error: ${lastError.toString()}.';
+      }
+      
+      throw Exception(errorMsg);
     } catch (e) {
       throw Exception('Failed to create car spot: ${e.toString()}');
     }

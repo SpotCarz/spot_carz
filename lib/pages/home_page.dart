@@ -237,7 +237,7 @@ class _HomePageState extends State<HomePage> {
                         boxShadow: [
                           // Outer glow - large, soft
                           BoxShadow(
-                            color: Color.fromARGB(255, 253, 200, 255).withOpacity(0.1),
+                            color: Color.fromARGB(255, 253, 200, 255).withValues(alpha: 0.1),
                             blurRadius: 20,
                             spreadRadius: 2,
                           ),
