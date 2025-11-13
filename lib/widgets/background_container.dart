@@ -15,7 +15,7 @@ class BackgroundContainer extends StatelessWidget {
       child: Container(
         decoration: const BoxDecoration(
           image: DecorationImage(
-            image: AssetImage('assets/images/background.png'),
+            image: AssetImage('assets/images/spotCarz__main_bg.png'),
             fit: BoxFit.cover,
           ),
         ),

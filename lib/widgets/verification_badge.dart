@@ -42,7 +42,7 @@ class VerificationBadge extends StatelessWidget {
           const SizedBox(width: 6),
           Text(
             label,
-            style: GoogleFonts.roboto(
+            style: GoogleFonts.righteous(
               fontSize: 12,
               fontWeight: FontWeight.bold,
               color: color,
@@ -52,7 +52,7 @@ class VerificationBadge extends StatelessWidget {
             const SizedBox(width: 6),
             Text(
               '$score/100',
-              style: GoogleFonts.roboto(
+              style: GoogleFonts.righteous(
                 fontSize: 11,
                 color: color.withValues(alpha: 0.8),
               ),
@@ -113,7 +113,7 @@ class UnverifiedBadge extends StatelessWidget {
           const SizedBox(width: 6),
           Text(
             'Not Verified',
-            style: GoogleFonts.roboto(
+            style: GoogleFonts.righteous(
               fontSize: 12,
               fontWeight: FontWeight.w500,
               color: Colors.grey[700],

@@ -1,5 +1,5 @@
 @echo off
-echo Generating app icons from App_logo.png...
+echo Generating app icons from Avatar_logo.png...
 flutter pub get
 dart run flutter_launcher_icons
 echo.

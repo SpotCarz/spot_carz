@@ -126,7 +126,7 @@ class _HomePageState extends State<HomePage> {
                     ),
                     child: Text(
                       'GET STARTED',
-                      style: GoogleFonts.roboto(
+                      style: GoogleFonts.righteous(
                         fontSize: 18,
                         fontWeight: FontWeight.bold,
                         letterSpacing: 1.5,
@@ -147,7 +147,7 @@ class _HomePageState extends State<HomePage> {
                   },
                   child: Text(
                     'Already have an account ? Sign In',
-                    style: GoogleFonts.roboto(
+                    style: GoogleFonts.righteous(
                       color: Colors.white,
                       fontSize: 14,
                     ),
@@ -266,7 +266,7 @@ class _HomePageState extends State<HomePage> {
                   Center(
                     child: Text(
                       title,
-                      style: GoogleFonts.roboto(
+                      style: GoogleFonts.righteous(
                         fontSize: 36,
                         fontWeight: FontWeight.bold,
                         color: Colors.white,
@@ -282,7 +282,7 @@ class _HomePageState extends State<HomePage> {
                     child: RichText(
                       textAlign: TextAlign.center,
                       text: TextSpan(
-                        style: GoogleFonts.roboto(
+                        style: GoogleFonts.righteous(
                           fontSize: 18,
                           color: Colors.white,
                         ),
@@ -291,7 +291,7 @@ class _HomePageState extends State<HomePage> {
                           if (hasHighlight)
                             TextSpan(
                               text: highlightWord,
-                              style: GoogleFonts.roboto(
+                              style: GoogleFonts.righteous(
                                 fontSize: 18,
                                 fontWeight: FontWeight.bold,
                                 color: const Color.fromARGB(209, 197, 0, 223), // Purple highlight

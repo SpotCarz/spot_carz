@@ -118,7 +118,7 @@ class _CarDetailPageState extends State<CarDetailPage> {
         builder: (context) => AlertDialog(
           title: Text(
             'No Verification Available',
-            style: GoogleFonts.roboto(
+            style: GoogleFonts.righteous(
               fontSize: 20,
               fontWeight: FontWeight.bold,
             ),
@@ -130,12 +130,12 @@ class _CarDetailPageState extends State<CarDetailPage> {
             children: [
               Text(
                 'This car spot has not been verified yet.',
-                style: GoogleFonts.roboto(fontSize: 14),
+                style: GoogleFonts.righteous(fontSize: 14),
               ),
               const SizedBox(height: 12),
               Text(
                 'To verify an image:',
-                style: GoogleFonts.roboto(
+                style: GoogleFonts.righteous(
                   fontSize: 14,
                   fontWeight: FontWeight.bold,
                 ),
@@ -146,7 +146,7 @@ class _CarDetailPageState extends State<CarDetailPage> {
                 '2. Select an image\n'
                 '3. Click "Verify Image Authenticity"\n'
                 '4. The verification will be saved automatically',
-                style: GoogleFonts.roboto(fontSize: 12),
+                style: GoogleFonts.righteous(fontSize: 12),
               ),
             ],
           ),
@@ -208,7 +208,7 @@ class _CarDetailPageState extends State<CarDetailPage> {
                     Expanded(
                       child: Text(
                         'Verification Details',
-                        style: GoogleFonts.roboto(
+                        style: GoogleFonts.righteous(
                           fontSize: 20,
                           fontWeight: FontWeight.bold,
                         ),
@@ -258,7 +258,7 @@ class _CarDetailPageState extends State<CarDetailPage> {
                     Expanded(
                       child: Text(
                         'Car Card',
-                        style: GoogleFonts.roboto(
+                        style: GoogleFonts.righteous(
                           fontSize: 18,
                           fontWeight: FontWeight.bold,
                           color: Colors.white,
@@ -381,7 +381,7 @@ class _CarDetailPageState extends State<CarDetailPage> {
               children: [
                 Text(
                   widget.carSpot.brand.replaceAll('_', ' ').toUpperCase(),
-                  style: GoogleFonts.roboto(
+                  style: GoogleFonts.righteous(
                     fontSize: 16,
                     fontWeight: FontWeight.bold,
                     color: Colors.white,
@@ -391,7 +391,7 @@ class _CarDetailPageState extends State<CarDetailPage> {
                 const SizedBox(height: 4),
                 Text(
                   'CAR SPOT CARD',
-                  style: GoogleFonts.roboto(
+                  style: GoogleFonts.righteous(
                     fontSize: 10,
                     fontWeight: FontWeight.w500,
                     color: Colors.white.withValues(alpha: 0.8),
@@ -409,7 +409,7 @@ class _CarDetailPageState extends State<CarDetailPage> {
             ),
             child: Text(
               '${widget.carSpot.rarityScore}/10',
-              style: GoogleFonts.roboto(
+              style: GoogleFonts.righteous(
                 fontSize: 12,
                 fontWeight: FontWeight.bold,
                 color: Colors.white,
@@ -495,7 +495,7 @@ class _CarDetailPageState extends State<CarDetailPage> {
             const SizedBox(height: 8),
             Text(
               'No Image',
-              style: GoogleFonts.roboto(
+              style: GoogleFonts.righteous(
                 fontSize: 14,
                 color: Colors.white.withValues(alpha: 0.7),
               ),
@@ -514,7 +514,7 @@ class _CarDetailPageState extends State<CarDetailPage> {
           // Model Name
           Text(
             widget.carSpot.model.toUpperCase(),
-            style: GoogleFonts.roboto(
+            style: GoogleFonts.righteous(
               fontSize: 20,
               fontWeight: FontWeight.bold,
               color: Colors.white,
@@ -540,7 +540,7 @@ class _CarDetailPageState extends State<CarDetailPage> {
               ),
               child: Text(
                 widget.carSpot.description!,
-                style: GoogleFonts.roboto(
+                style: GoogleFonts.righteous(
                   fontSize: 12,
                   color: Colors.white.withValues(alpha: 0.9),
                   height: 1.4,
@@ -574,7 +574,7 @@ class _CarDetailPageState extends State<CarDetailPage> {
                     const SizedBox(width: 8),
                     Text(
                       'View Verification Details',
-                      style: GoogleFonts.roboto(
+                      style: GoogleFonts.righteous(
                         fontSize: 12,
                         fontWeight: FontWeight.w500,
                         color: Colors.white.withValues(alpha: 0.9),
@@ -621,7 +621,7 @@ class _CarDetailPageState extends State<CarDetailPage> {
       children: [
         Text(
           value,
-          style: GoogleFonts.roboto(
+          style: GoogleFonts.righteous(
             fontSize: 14,
             fontWeight: FontWeight.bold,
             color: Colors.white,
@@ -630,7 +630,7 @@ class _CarDetailPageState extends State<CarDetailPage> {
         const SizedBox(height: 4),
         Text(
           label,
-          style: GoogleFonts.roboto(
+          style: GoogleFonts.righteous(
             fontSize: 10,
             color: Colors.white.withValues(alpha: 0.7),
             letterSpacing: 0.5,
@@ -678,7 +678,7 @@ class _CarDetailPageState extends State<CarDetailPage> {
         const SizedBox(width: 4),
         Text(
           value,
-          style: GoogleFonts.roboto(
+          style: GoogleFonts.righteous(
             fontSize: 12,
             fontWeight: FontWeight.w500,
             color: Colors.white.withValues(alpha: 0.8),

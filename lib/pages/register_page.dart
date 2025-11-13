@@ -148,7 +148,7 @@ class _RegisterPageState extends State<RegisterPage> {
                 Center(
                   child: Text(
                     'Create an account',
-                    style: GoogleFonts.roboto(
+                    style: GoogleFonts.righteous(
                       fontSize: 24,
                       fontWeight: FontWeight.bold,
                       color: Colors.white,
@@ -173,13 +173,13 @@ class _RegisterPageState extends State<RegisterPage> {
                         child: TextFormField(
                           controller: _emailController,
                           keyboardType: TextInputType.emailAddress,
-                          style: GoogleFonts.roboto(
+                          style: GoogleFonts.righteous(
                             color: Colors.white,
                             fontSize: 16,
                           ),
                           decoration: InputDecoration(
                             hintText: 'Your email',
-                            hintStyle: GoogleFonts.roboto(
+                            hintStyle: GoogleFonts.righteous(
                               color: Colors.grey[400],
                               fontSize: 16,
                             ),
@@ -210,13 +210,13 @@ class _RegisterPageState extends State<RegisterPage> {
                         child: TextFormField(
                           controller: _passwordController,
                           obscureText: !_isPasswordVisible,
-                          style: GoogleFonts.roboto(
+                          style: GoogleFonts.righteous(
                             color: Colors.white,
                             fontSize: 16,
                           ),
                           decoration: InputDecoration(
                             hintText: 'Your password',
-                            hintStyle: GoogleFonts.roboto(
+                            hintStyle: GoogleFonts.righteous(
                               color: Colors.grey[400],
                               fontSize: 16,
                             ),
@@ -273,7 +273,7 @@ class _RegisterPageState extends State<RegisterPage> {
                                 )
                               : Text(
                                   'REGISTER',
-                                  style: GoogleFonts.roboto(
+                                  style: GoogleFonts.righteous(
                                     fontSize: 18,
                                     fontWeight: FontWeight.bold,
                                     letterSpacing: 1.5,
@@ -290,7 +290,7 @@ class _RegisterPageState extends State<RegisterPage> {
                         child: RichText(
                           textAlign: TextAlign.center,
                           text: TextSpan(
-                            style: GoogleFonts.roboto(
+                            style: GoogleFonts.righteous(
                               fontSize: 14,
                               color: Colors.grey[400],
                             ),
@@ -298,7 +298,7 @@ class _RegisterPageState extends State<RegisterPage> {
                               const TextSpan(text: "Already have an account ? "),
                               TextSpan(
                                 text: 'Sign In',
-                                style: GoogleFonts.roboto(
+                                style: GoogleFonts.righteous(
                                   fontSize: 14,
                                   color: Colors.white,
                                   fontWeight: FontWeight.w500,
@@ -324,7 +324,7 @@ class _RegisterPageState extends State<RegisterPage> {
                             padding: const EdgeInsets.symmetric(horizontal: 16),
                             child: Text(
                               'or',
-                              style: GoogleFonts.roboto(
+                              style: GoogleFonts.righteous(
                                 color: Colors.white,
                                 fontSize: 14,
                               ),
@@ -345,7 +345,7 @@ class _RegisterPageState extends State<RegisterPage> {
                       Center(
                         child: RichText(
                           text: TextSpan(
-                            style: GoogleFonts.roboto(
+                            style: GoogleFonts.righteous(
                               fontSize: 14,
                               color: Colors.grey[400],
                             ),
@@ -353,7 +353,7 @@ class _RegisterPageState extends State<RegisterPage> {
                               const TextSpan(text: 'Sign up with '),
                               TextSpan(
                                 text: 'Google',
-                                style: GoogleFonts.roboto(
+                                style: GoogleFonts.righteous(
                                   fontSize: 14,
                                   color: const Color.fromARGB(255, 197, 0, 223), // Purple highlight from home_page
                                   fontWeight: FontWeight.w500,
@@ -392,7 +392,7 @@ class _RegisterPageState extends State<RegisterPage> {
                               const SizedBox(width: 12),
                               Text(
                                 'SIGN UP WITH GOOGLE',
-                                style: GoogleFonts.roboto(
+                                style: GoogleFonts.righteous(
                                   fontSize: 18,
                                   fontWeight: FontWeight.bold,
                                   letterSpacing: 1.5,

@@ -45,7 +45,7 @@ class VerificationResultWidget extends StatelessWidget {
                   children: [
                     Text(
                       result.status.displayName,
-                      style: GoogleFonts.roboto(
+                      style: GoogleFonts.righteous(
                         fontSize: 24,
                         fontWeight: FontWeight.bold,
                         color: statusColor,
@@ -53,7 +53,7 @@ class VerificationResultWidget extends StatelessWidget {
                     ),
                     Text(
                       'Verification Score: ${result.verificationScore}/100',
-                      style: GoogleFonts.roboto(
+                      style: GoogleFonts.righteous(
                         fontSize: 14,
                         color: const Color.fromARGB(255, 117, 117, 117),
                       ),
@@ -123,7 +123,7 @@ class VerificationResultWidget extends StatelessWidget {
                   Expanded(
                     child: Text(
                       'Error: ${result.errorMessage}',
-                      style: GoogleFonts.roboto(
+                      style: GoogleFonts.righteous(
                         fontSize: 12,
                         color: Colors.red[700],
                       ),
@@ -139,7 +139,7 @@ class VerificationResultWidget extends StatelessWidget {
             ExpansionTile(
               title: Text(
                 'EXIF Metadata',
-                style: GoogleFonts.roboto(
+                style: GoogleFonts.righteous(
                   fontSize: 14,
                   fontWeight: FontWeight.w500,
                 ),
@@ -157,7 +157,7 @@ class VerificationResultWidget extends StatelessWidget {
                           children: [
                             Text(
                               '${entry.key}: ',
-                              style: GoogleFonts.roboto(
+                              style: GoogleFonts.righteous(
                                 fontSize: 12,
                                 fontWeight: FontWeight.bold,
                                 color: Colors.grey[700],
@@ -166,7 +166,7 @@ class VerificationResultWidget extends StatelessWidget {
                             Expanded(
                               child: Text(
                                 entry.value.toString(),
-                                style: GoogleFonts.roboto(
+                                style: GoogleFonts.righteous(
                                   fontSize: 12,
                                   color: Colors.grey[600],
                                 ),
@@ -192,7 +192,7 @@ class VerificationResultWidget extends StatelessWidget {
       children: [
         Text(
           label,
-          style: GoogleFonts.roboto(
+          style: GoogleFonts.righteous(
             fontSize: 14,
             color: Colors.grey[700],
           ),
@@ -206,7 +206,7 @@ class VerificationResultWidget extends StatelessWidget {
           ),
           child: Text(
             value,
-            style: GoogleFonts.roboto(
+            style: GoogleFonts.righteous(
               fontSize: 14,
               fontWeight: FontWeight.bold,
               color: color,
@@ -292,7 +292,7 @@ class VerificationProgressWidget extends StatelessWidget {
           const SizedBox(height: 16),
           Text(
             message,
-            style: GoogleFonts.roboto(
+            style: GoogleFonts.righteous(
               fontSize: 16,
               color: Colors.blue[700],
               fontWeight: FontWeight.w500,

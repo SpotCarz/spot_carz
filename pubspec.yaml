@@ -76,8 +76,10 @@ flutter:
     - assets/images/background.png
     - assets/images/spotCarz_bg.png
     - assets/images/spotCarz__main_bg.png
+    - assets/images/back.png
     - assets/images/logos/
     - assets/images/cards/
+    - assets/images/menu_icons/
 
   # An image asset can refer to one or more resolution-specific "variants", see
   # https://flutter.dev/to/resolution-aware-images

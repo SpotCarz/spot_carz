@@ -84,7 +84,7 @@ class _VerificationExamplePageState extends State<VerificationExamplePage> {
             backgroundColor: const Color.fromARGB(255, 190, 190, 190),
             title: Text(
               'Verification Result',
-              style: GoogleFonts.roboto(
+              style: GoogleFonts.righteous(
                 fontSize: 20,
                 fontWeight: FontWeight.bold,
               ),
@@ -159,7 +159,7 @@ class _VerificationExamplePageState extends State<VerificationExamplePage> {
                   children: [
                     Text(
                       'Select Image',
-                      style: GoogleFonts.roboto(
+                      style: GoogleFonts.righteous(
                         fontSize: 18,
                         fontWeight: FontWeight.bold,
                       ),
@@ -218,7 +218,7 @@ class _VerificationExamplePageState extends State<VerificationExamplePage> {
                     )
                   : Text(
                       'Verify Image Authenticity',
-                      style: GoogleFonts.roboto(
+                      style: GoogleFonts.righteous(
                         fontSize: 16,
                         fontWeight: FontWeight.bold,
                       ),
@@ -241,7 +241,7 @@ class _VerificationExamplePageState extends State<VerificationExamplePage> {
                         const SizedBox(width: 8),
                         Text(
                           'How Verification Works',
-                          style: GoogleFonts.roboto(
+                          style: GoogleFonts.righteous(
                             fontSize: 16,
                             fontWeight: FontWeight.bold,
                             color: Colors.blue[700],
@@ -259,7 +259,7 @@ class _VerificationExamplePageState extends State<VerificationExamplePage> {
                       '✅ Authentic (81-100)\n'
                       '⚠️ Suspicious (50-80)\n'
                       '❌ Likely Fake (0-49)',
-                      style: GoogleFonts.roboto(
+                      style: GoogleFonts.righteous(
                         fontSize: 14,
                         color: Colors.grey[700],
                       ),

@@ -35,7 +35,7 @@ class _SettingsPageState extends State<SettingsPage> {
       context: context,
       builder: (context) => AlertDialog(
         backgroundColor: Colors.grey[900],
-        title: Text('Confirm Deletion', style: GoogleFonts.roboto(color: Colors.white, fontWeight: FontWeight.bold)),
+        title: Text('Confirm Deletion', style: GoogleFonts.righteous(color: Colors.white, fontWeight: FontWeight.bold)),
         content: Form(
           key: formKey,
           child: Column(
@@ -44,16 +44,16 @@ class _SettingsPageState extends State<SettingsPage> {
             children: [
               Text(
                 'This action will permanently delete your data. Enter your password to confirm.',
-                style: GoogleFonts.roboto(color: Colors.grey[300]),
+                style: GoogleFonts.righteous(color: Colors.grey[300]),
               ),
               const SizedBox(height: 16),
               TextFormField(
                 controller: passwordController,
                 obscureText: true,
-                style: GoogleFonts.roboto(color: Colors.white),
+                style: GoogleFonts.righteous(color: Colors.white),
                 decoration: InputDecoration(
                   labelText: 'Password',
-                  labelStyle: GoogleFonts.roboto(color: Colors.grey[400]),
+                  labelStyle: GoogleFonts.righteous(color: Colors.grey[400]),
                   prefixIcon: const Icon(Icons.lock_outline, color: Colors.grey),
                   border: const OutlineInputBorder(),
                 ),
@@ -65,7 +65,7 @@ class _SettingsPageState extends State<SettingsPage> {
         actions: [
           TextButton(
             onPressed: () => Navigator.pop(context),
-            child: Text('Cancel', style: GoogleFonts.roboto(color: Colors.grey[400])),
+            child: Text('Cancel', style: GoogleFonts.righteous(color: Colors.grey[400])),
           ),
           ElevatedButton(
             onPressed: () {
@@ -75,7 +75,7 @@ class _SettingsPageState extends State<SettingsPage> {
               }
             },
             style: ElevatedButton.styleFrom(backgroundColor: Colors.purple[700]),
-            child: Text('Delete', style: GoogleFonts.roboto(color: Colors.white)),
+            child: Text('Delete', style: GoogleFonts.righteous(color: Colors.white)),
           ),
         ],
       ),
@@ -160,7 +160,7 @@ class _SettingsPageState extends State<SettingsPage> {
                   // Title
                   Text(
                     'Settings',
-                    style: GoogleFonts.roboto(
+                    style: GoogleFonts.righteous(
                       fontSize: 28,
                       fontWeight: FontWeight.bold,
                       color: Colors.white,
@@ -179,8 +179,8 @@ class _SettingsPageState extends State<SettingsPage> {
                     ),
                     child: ListTile(
                       leading: const Icon(Icons.delete_forever, color: Colors.red),
-                      title: Text('Delete Account', style: GoogleFonts.roboto(color: Colors.white)),
-                      subtitle: Text('Permanently delete your data', style: GoogleFonts.roboto(color: Colors.grey[400])),
+                      title: Text('Delete Account', style: GoogleFonts.righteous(color: Colors.white)),
+                      subtitle: Text('Permanently delete your data', style: GoogleFonts.righteous(color: Colors.grey[400])),
                       trailing: _isDeleting
                           ? const SizedBox(width: 20, height: 20, child: CircularProgressIndicator(strokeWidth: 2, color: Colors.red))
                           : const Icon(Icons.arrow_forward_ios, color: Colors.grey, size: 16),

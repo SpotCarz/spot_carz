@@ -228,13 +228,13 @@ class _LoginPageState extends State<LoginPage> {
                         child: TextFormField(
                           controller: _emailController,
                           keyboardType: TextInputType.emailAddress,
-                          style: GoogleFonts.roboto(
+                          style: GoogleFonts.righteous(
                             color: Colors.white,
                             fontSize: 16,
                           ),
                           decoration: InputDecoration(
                             hintText: 'Your email',
-                            hintStyle: GoogleFonts.roboto(
+                            hintStyle: GoogleFonts.righteous(
                               color: Colors.grey[400],
                               fontSize: 16,
                             ),
@@ -265,13 +265,13 @@ class _LoginPageState extends State<LoginPage> {
                         child: TextFormField(
                           controller: _passwordController,
                           obscureText: !_isPasswordVisible,
-                          style: GoogleFonts.roboto(
+                          style: GoogleFonts.righteous(
                             color: Colors.white,
                             fontSize: 16,
                           ),
                           decoration: InputDecoration(
                             hintText: 'Your password',
-                            hintStyle: GoogleFonts.roboto(
+                            hintStyle: GoogleFonts.righteous(
                               color: Colors.grey[400],
                               fontSize: 16,
                             ),
@@ -328,7 +328,7 @@ class _LoginPageState extends State<LoginPage> {
                                 )
                               : Text(
                                   'CONNECTION',
-                                  style: GoogleFonts.roboto(
+                                  style: GoogleFonts.righteous(
                                     fontSize: 18,
                                     fontWeight: FontWeight.bold,
                                     letterSpacing: 1.5,
@@ -350,7 +350,7 @@ class _LoginPageState extends State<LoginPage> {
                         child: RichText(
                           textAlign: TextAlign.center,
                           text: TextSpan(
-                            style: GoogleFonts.roboto(
+                            style: GoogleFonts.righteous(
                               fontSize: 14,
                               color: Colors.grey[400],
                             ),
@@ -358,7 +358,7 @@ class _LoginPageState extends State<LoginPage> {
                               const TextSpan(text: "Don't have an account ? "),
                               TextSpan(
                                 text: 'Sign Up',
-                                style: GoogleFonts.roboto(
+                                style: GoogleFonts.righteous(
                                   fontSize: 14,
                                   color: Colors.white,
                                   fontWeight: FontWeight.w500,
@@ -384,7 +384,7 @@ class _LoginPageState extends State<LoginPage> {
                             padding: const EdgeInsets.symmetric(horizontal: 16),
                             child: Text(
                               'or',
-                              style: GoogleFonts.roboto(
+                              style: GoogleFonts.righteous(
                                 color: Colors.white,
                                 fontSize: 14,
                               ),
@@ -405,7 +405,7 @@ class _LoginPageState extends State<LoginPage> {
                       Center(
                         child: RichText(
                           text: TextSpan(
-                            style: GoogleFonts.roboto(
+                            style: GoogleFonts.righteous(
                               fontSize: 14,
                               color: Colors.grey[400],
                             ),
@@ -413,7 +413,7 @@ class _LoginPageState extends State<LoginPage> {
                               const TextSpan(text: 'Sign in with '),
                               TextSpan(
                                 text: 'Google',
-                                style: GoogleFonts.roboto(
+                                style: GoogleFonts.righteous(
                                   fontSize: 14,
                                   color: const Color.fromARGB(255, 197, 0, 223), // Purple highlight from home_page
                                   fontWeight: FontWeight.w500,
@@ -452,7 +452,7 @@ class _LoginPageState extends State<LoginPage> {
                               const SizedBox(width: 12),
                               Text(
                                 'SIGN IN WITH GOOGLE',
-                                style: GoogleFonts.roboto(
+                                style: GoogleFonts.righteous(
                                   fontSize: 18,
                                   fontWeight: FontWeight.bold,
                                   letterSpacing: 1.5,

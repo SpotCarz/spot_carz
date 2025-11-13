@@ -33,13 +33,13 @@ class SpotCarzApp extends StatelessWidget {
           seedColor: Colors.red,
           brightness: Brightness.dark,
         ),
-        textTheme: GoogleFonts.robotoTextTheme(
+        textTheme: GoogleFonts.righteousTextTheme(
           Theme.of(context).textTheme,
         ),
         appBarTheme: AppBarTheme(
           backgroundColor: Colors.transparent,
           elevation: 0,
-          titleTextStyle: GoogleFonts.roboto(
+          titleTextStyle: GoogleFonts.righteous(
             fontSize: 20,
             fontWeight: FontWeight.bold,
             color: Colors.white,
