@@ -12,6 +12,7 @@ import 'login_page.dart';
 import 'brand_detail_page.dart';
 import 'car_detail_page.dart';
 import 'settings_page.dart';
+import 'create_post_page.dart';
 import '../examples/verification_example.dart';
 
 class DashboardPage extends StatefulWidget {
@@ -33,6 +34,14 @@ class _DashboardPageState extends State<DashboardPage> {
   String _searchQuery = '';
   String? _selectedBrand; // Track which brand is currently expanded
   CarSpot? _selectedCar; // Track which car is currently selected
+  
+  // Feed data
+  List<Map<String, dynamic>> _feedPosts = [];
+  bool _isLoadingFeed = false;
+  int _selectedFeedTab = 0; // 0 = Découvertes, 1 = Suivis
+  bool _feedLoaded = false; // Track if feed has been loaded
+  bool _feedLoadScheduled = false; // Prevent multiple load attempts
+  Map<String, bool> _postLikedCache = {}; // Cache for like status
 
   @override
   void initState() {
@@ -93,15 +102,18 @@ class _DashboardPageState extends State<DashboardPage> {
     return Scaffold(
       backgroundColor: Colors.transparent,
       body: SafeArea(
-        child: IndexedStack(
-          index: _selectedIndex,
-          children: [
-            _buildHomeTab(),
-            _buildCollectionTab(),
-            _buildSpotTab(),
-            _buildFeedTab(),
-            _buildProfileTab(),
-          ],
+        child: Padding(
+          padding: const EdgeInsets.symmetric(horizontal: 0.0, vertical: 16.0),
+          child: IndexedStack(
+            index: _selectedIndex,
+            children: [
+              _buildHomeTab(),
+              _buildCollectionTab(),
+              _buildSpotTab(),
+              _buildFeedTab(),
+              _buildProfileTab(),
+            ],
+          ),
         ),
       ),
       bottomNavigationBar: Container(
@@ -110,7 +122,14 @@ class _DashboardPageState extends State<DashboardPage> {
         ),
         child: BottomNavigationBar(
           currentIndex: _selectedIndex,
-          onTap: (index) => setState(() => _selectedIndex = index),
+          onTap: (index) {
+            // Reset feed loaded flag when switching away from feed tab
+            if (_selectedIndex == 3 && index != 3) {
+              _feedLoaded = false;
+              _feedLoadScheduled = false;
+            }
+            setState(() => _selectedIndex = index);
+          },
           type: BottomNavigationBarType.fixed,
           backgroundColor: Colors.transparent,
           elevation: 0,
@@ -814,10 +833,10 @@ class _DashboardPageState extends State<DashboardPage> {
   Widget _buildCarDetailsView(CarSpot carSpot) {
     return Column(
       children: [
-        // Back button header
+        // Back button header with car model name
         Container(
           width: double.infinity,
-          padding: const EdgeInsets.symmetric(horizontal: 20.0, vertical: 16.0),
+          padding: const EdgeInsets.symmetric(horizontal: 0.0, vertical: 16.0),
           child: Row(
             children: [
               GestureDetector(
@@ -846,21 +865,36 @@ class _DashboardPageState extends State<DashboardPage> {
                   ),
                 ),
               ),
+              const Spacer(),
+              // Car model name on the right
+              Flexible(
+                child: Text(
+                  carSpot.model,
+                  style: GoogleFonts.righteous(
+                    fontSize: 18,
+                    fontWeight: FontWeight.bold,
+                    color: Colors.white,
+                  ),
+                  textAlign: TextAlign.right,
+                  overflow: TextOverflow.ellipsis,
+                ),
+              ),
             ],
           ),
         ),
-        // Car Image
+        // Car Image with margins (matching the design)
         Expanded(
           flex: 3,
           child: Container(
             width: double.infinity,
-            margin: const EdgeInsets.symmetric(horizontal: 20.0),
+            margin: const EdgeInsets.symmetric(horizontal: 0.0),
             child: carSpot.imageUrls.isNotEmpty
                 ? ClipRRect(
                     borderRadius: BorderRadius.circular(12),
                     child: Image.network(
                       carSpot.imageUrls.first,
-                      fit: BoxFit.contain,
+                      fit: BoxFit.cover,
+                      width: double.infinity,
                       errorBuilder: (context, error, stackTrace) {
                         return _buildCarImagePlaceholder();
                       },
@@ -869,7 +903,7 @@ class _DashboardPageState extends State<DashboardPage> {
                 : _buildCarImagePlaceholder(),
           ),
         ),
-        // Car Name
+        // Car Name (keeping for consistency, but can be removed if not needed)
         Padding(
           padding: const EdgeInsets.symmetric(horizontal: 20.0, vertical: 16.0),
           child: Text(
@@ -892,7 +926,12 @@ class _DashboardPageState extends State<DashboardPage> {
                 width: double.infinity,
                 child: ElevatedButton.icon(
                   onPressed: () {
-                    // TODO: Implement create post
+                    Navigator.push(
+                      context,
+                      MaterialPageRoute(
+                        builder: (context) => CreatePostPage(initialCarSpot: carSpot),
+                      ),
+                    );
                   },
                   icon: Icon(Icons.thumb_up, color: Colors.white),
                   label: Text(
@@ -1847,41 +1886,596 @@ class _DashboardPageState extends State<DashboardPage> {
   }
 
   Widget _buildFeedTab() {
-    return Padding(
-      padding: const EdgeInsets.symmetric(horizontal: 24.0, vertical: 32.0),
+    // Load feed only once when tab is first opened or when tab changes
+    if (!_feedLoaded && !_isLoadingFeed && !_feedLoadScheduled && _selectedIndex == 3) {
+      _feedLoadScheduled = true;
+      WidgetsBinding.instance.addPostFrameCallback((_) {
+        if (mounted && !_isLoadingFeed) {
+          _loadFeed(_selectedFeedTab);
+        }
+        _feedLoadScheduled = false;
+      });
+    }
+    
+    return StatefulBuilder(
+      builder: (context, setState) {
+        return Column(
+          children: [
+            // Header
+            Padding(
+              padding: const EdgeInsets.symmetric(horizontal: 20.0, vertical: 16.0),
+              child: Column(
+                children: [
+                  // Logo and Title Row
+                  Row(
+                    children: [
+                      // Logo
+                      Container(
+                        width: 50,
+                        height: 50,
+                        decoration: BoxDecoration(
+                          borderRadius: BorderRadius.circular(8),
+                        ),
+                        child: ClipRRect(
+                          borderRadius: BorderRadius.circular(8),
+                          child: Image.asset(
+                            'assets/images/logos/App_logo.png',
+                            width: 50,
+                            height: 50,
+                            fit: BoxFit.contain,
+                            errorBuilder: (context, error, stackTrace) {
+                              return Container(
+                                decoration: BoxDecoration(
+                                  borderRadius: BorderRadius.circular(8),
+                                  gradient: LinearGradient(
+                                    colors: [Colors.purple[700]!, Colors.purple[900]!],
+                                  ),
+                                ),
+                                child: Center(
+                                  child: Text(
+                                    'Spot\nCarz',
+                                    style: GoogleFonts.righteous(
+                                      fontSize: 10,
+                                      fontWeight: FontWeight.bold,
+                                      color: Colors.white,
+                                      height: 1.1,
+                                    ),
+                                    textAlign: TextAlign.center,
+                                  ),
+                                ),
+                              );
+                            },
+                          ),
+                        ),
+                      ),
+                      const Spacer(),
+                      // Title with icon
+                      Stack(
+                        alignment: Alignment.center,
+                        children: [
+                          // Ghosted text
+                          Text(
+                            'Car Meet',
+                            style: GoogleFonts.righteous(
+                              fontSize: 50,
+                              fontWeight: FontWeight.bold,
+                              color: Colors.white.withValues(alpha: 0.1),
+                            ),
+                          ),
+                          // Main text
+                          Row(
+                            mainAxisSize: MainAxisSize.min,
+                            children: [
+                              Icon(
+                                Icons.image,
+                                color: Colors.white,
+                                size: 28,
+                              ),
+                              const SizedBox(width: 8),
+                              Text(
+                                'Car Meet',
+                                style: GoogleFonts.righteous(
+                                  fontSize: 36,
+                                  fontWeight: FontWeight.bold,
+                                  color: Colors.white,
+                                ),
+                              ),
+                            ],
+                          ),
+                        ],
+                      ),
+                      const Spacer(),
+                      // Create Post Button
+                      ElevatedButton(
+                        onPressed: () async {
+                          final result = await Navigator.push(
+                            context,
+                            MaterialPageRoute(
+                              builder: (context) => CreatePostPage(),
+                            ),
+                          );
+                          // Refresh feed if post was created
+                          if (result == true) {
+                            debugPrint('Dashboard: Post created, refreshing feed...');
+                            setState(() {
+                              _feedLoaded = false;
+                              _feedLoadScheduled = false;
+                            });
+                            // Force reload the feed
+                            await _loadFeed(_selectedFeedTab);
+                            debugPrint('Dashboard: Feed refreshed, posts count: ${_feedPosts.length}');
+                          }
+                        },
+                        style: ElevatedButton.styleFrom(
+                          backgroundColor: Colors.purple[700],
+                          foregroundColor: Colors.white,
+                          padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+                          shape: RoundedRectangleBorder(
+                            borderRadius: BorderRadius.circular(12),
+                          ),
+                        ),
+                        child: Text(
+                          'Créer un post',
+                          style: GoogleFonts.righteous(
+                            fontSize: 12,
+                            fontWeight: FontWeight.bold,
+                          ),
+                        ),
+                      ),
+                    ],
+                  ),
+                  
+                  const SizedBox(height: 16),
+                  
+                  // Search Bar
+                  Container(
+                    decoration: BoxDecoration(
+                      color: Colors.grey[300]!.withValues(alpha: 0.3),
+                      borderRadius: BorderRadius.circular(12),
+                    ),
+                    child: TextField(
+                      style: GoogleFonts.righteous(color: Colors.white),
+                      decoration: InputDecoration(
+                        hintText: 'Faites une recherche sur le meeting',
+                        hintStyle: GoogleFonts.righteous(
+                          color: Colors.grey[400],
+                          fontSize: 14,
+                        ),
+                        prefixIcon: Icon(Icons.search, color: Colors.grey[400]),
+                        border: InputBorder.none,
+                        contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+                      ),
+                    ),
+                  ),
+                  
+                  const SizedBox(height: 16),
+                  
+                  // Tabs
+                  Row(
+                    children: [
+                      Expanded(
+                        child: GestureDetector(
+                          onTap: () {
+                            if (_selectedFeedTab != 0) {
+                              setState(() {
+                                _selectedFeedTab = 0;
+                                _feedLoaded = false; // Mark as not loaded to reload
+                                _feedLoadScheduled = false;
+                              });
+                              _loadFeed(0);
+                            }
+                          },
+                          child: Container(
+                            padding: const EdgeInsets.symmetric(vertical: 12),
+                            decoration: BoxDecoration(
+                              border: Border(
+                                bottom: BorderSide(
+                                  color: _selectedFeedTab == 0 
+                                      ? Colors.purple[400]! 
+                                      : Colors.transparent,
+                                  width: 2,
+                                ),
+                              ),
+                            ),
+                            child: Text(
+                              'Découvertes',
+                              style: GoogleFonts.righteous(
+                                fontSize: 16,
+                                fontWeight: FontWeight.bold,
+                                color: _selectedFeedTab == 0 
+                                    ? Colors.purple[400]! 
+                                    : Colors.white,
+                              ),
+                              textAlign: TextAlign.center,
+                            ),
+                          ),
+                        ),
+                      ),
+                      Expanded(
+                        child: GestureDetector(
+                          onTap: () {
+                            if (_selectedFeedTab != 1) {
+                              setState(() {
+                                _selectedFeedTab = 1;
+                                _feedLoaded = false; // Mark as not loaded to reload
+                                _feedLoadScheduled = false;
+                              });
+                              _loadFeed(1);
+                            }
+                          },
+                          child: Container(
+                            padding: const EdgeInsets.symmetric(vertical: 12),
+                            decoration: BoxDecoration(
+                              border: Border(
+                                bottom: BorderSide(
+                                  color: _selectedFeedTab == 1 
+                                      ? Colors.purple[400]! 
+                                      : Colors.transparent,
+                                  width: 2,
+                                ),
+                              ),
+                            ),
+                            child: Text(
+                              'Suivis',
+                              style: GoogleFonts.righteous(
+                                fontSize: 16,
+                                fontWeight: FontWeight.bold,
+                                color: _selectedFeedTab == 1 
+                                    ? Colors.purple[400]! 
+                                    : Colors.white,
+                              ),
+                              textAlign: TextAlign.center,
+                            ),
+                          ),
+                        ),
+                      ),
+                    ],
+                  ),
+                ],
+              ),
+            ),
+            
+            // Feed Content
+            Expanded(
+              child: _isLoadingFeed
+                  ? const Center(
+                      child: CircularProgressIndicator(color: Colors.white),
+                    )
+                  : _feedPosts.isEmpty
+                      ? Center(
+                          child: Column(
+                            mainAxisAlignment: MainAxisAlignment.center,
+                            children: [
+                              Text(
+                                'Aucun post pour le moment',
+                                style: GoogleFonts.righteous(
+                                  fontSize: 16,
+                                  color: Colors.grey[400],
+                                ),
+                              ),
+                              const SizedBox(height: 16),
+                              ElevatedButton.icon(
+                                onPressed: () async {
+                                  setState(() {
+                                    _feedLoaded = false;
+                                    _feedLoadScheduled = false;
+                                  });
+                                  await _loadFeed(_selectedFeedTab);
+                                },
+                                icon: Icon(Icons.refresh, color: Colors.white),
+                                label: Text(
+                                  'Actualiser',
+                                  style: GoogleFonts.righteous(
+                                    color: Colors.white,
+                                  ),
+                                ),
+                                style: ElevatedButton.styleFrom(
+                                  backgroundColor: Colors.purple[700],
+                                ),
+                              ),
+                            ],
+                          ),
+                        )
+                      : RefreshIndicator(
+                          onRefresh: () async {
+                            _feedLoaded = false;
+                            _feedLoadScheduled = false;
+                            await _loadFeed(_selectedFeedTab);
+                          },
+                          color: Colors.purple[700],
+                          child: ListView.builder(
+                            padding: const EdgeInsets.symmetric(horizontal: 20.0),
+                            itemCount: _feedPosts.length,
+                            itemBuilder: (context, index) {
+                              final post = _feedPosts[index];
+                              return _buildFeedPostCard(post);
+                            },
+                          ),
+                        ),
+            ),
+          ],
+        );
+      },
+    );
+  }
+
+  Future<void> _loadFeed(int tabIndex) async {
+    if (_isLoadingFeed) return; // Prevent concurrent loads
+    
+    setState(() {
+      _isLoadingFeed = true;
+    });
+
+    try {
+      List<Map<String, dynamic>> posts;
+      if (tabIndex == 0) {
+        // Découvertes (Discovery)
+        posts = await _databaseService.getDiscoveryFeed();
+      } else {
+        // Suivis (Following)
+        posts = await _databaseService.getFollowingFeed();
+      }
+
+      // Cache like statuses from posts
+      _postLikedCache.clear();
+      for (var post in posts) {
+        final postId = post['id'] as String?;
+        if (postId != null) {
+          _postLikedCache[postId] = post['is_liked'] as bool? ?? false;
+        }
+      }
+
+      if (mounted) {
+        debugPrint('Dashboard: Loaded ${posts.length} posts for tab $_selectedFeedTab');
+        if (posts.isNotEmpty) {
+          debugPrint('Dashboard: First post in feed - id: ${posts.first['id']}, username: ${posts.first['username']}, image_url: ${posts.first['image_url']}');
+        }
+        setState(() {
+          _feedPosts = posts;
+          _isLoadingFeed = false;
+          _feedLoaded = true; // Mark as loaded even if empty to prevent infinite retries
+        });
+      }
+    } catch (e) {
+      debugPrint('Dashboard: Error loading feed: $e');
+      if (mounted) {
+        setState(() {
+          _feedPosts = [];
+          _isLoadingFeed = false;
+          _feedLoaded = true; // Mark as loaded even on error to prevent infinite retries
+        });
+      }
+    }
+  }
+
+  Widget _buildFeedPostCard(Map<String, dynamic> post) {
+    return Container(
+      margin: const EdgeInsets.only(bottom: 24),
+      decoration: BoxDecoration(
+        color: Colors.transparent,
+        borderRadius: BorderRadius.circular(12),
+      ),
       child: Column(
+        crossAxisAlignment: CrossAxisAlignment.stretch,
         children: [
-          Text(
-            'Feed',
-            style: GoogleFonts.righteous(
-              fontSize: 24,
-              fontWeight: FontWeight.bold,
-              color: Colors.white,
+          // User Info
+          Padding(
+            padding: const EdgeInsets.symmetric(horizontal: 8.0, vertical: 8.0),
+            child: Row(
+              children: [
+                // Profile Picture
+                Container(
+                  width: 40,
+                  height: 40,
+                  decoration: BoxDecoration(
+                    shape: BoxShape.circle,
+                    color: Colors.purple[700],
+                  ),
+                  child: ClipOval(
+                    child: Image.asset(
+                      'assets/images/logos/Avatar_logo.png',
+                      fit: BoxFit.cover,
+                      errorBuilder: (context, error, stackTrace) {
+                        return Icon(
+                          Icons.person,
+                          color: Colors.white,
+                          size: 24,
+                        );
+                      },
+                    ),
+                  ),
+                ),
+                const SizedBox(width: 12),
+                // Username
+                Expanded(
+                  child: Text(
+                    post['username'] as String? ?? 'User',
+                    style: GoogleFonts.righteous(
+                      fontSize: 14,
+                      fontWeight: FontWeight.bold,
+                      color: Colors.white,
+                    ),
+                  ),
+                ),
+              ],
             ),
           ),
-          const SizedBox(height: 24),
-          Expanded(
-            child: _carSpots.isEmpty
-                ? Center(
-                    child: Text(
-                      'No spots yet',
-                      style: GoogleFonts.righteous(
-                        fontSize: 16,
+          
+          // Car Image
+          if (post['image_url'] != null && (post['image_url'] as String).isNotEmpty)
+            ClipRRect(
+              borderRadius: BorderRadius.circular(12),
+              child: Image.network(
+                post['image_url'] as String,
+                width: double.infinity,
+                height: 300,
+                fit: BoxFit.cover,
+                errorBuilder: (context, error, stackTrace) {
+                  return Container(
+                    height: 300,
+                    color: Colors.grey[800],
+                    child: Center(
+                      child: Icon(
+                        Icons.directions_car,
+                        size: 60,
                         color: Colors.grey[400],
                       ),
                     ),
-                  )
-                : ListView.builder(
-                    itemCount: _carSpots.length,
-                    itemBuilder: (context, index) {
-                      final spot = _carSpots[index];
-                      return _buildCarSpotCard(spot);
-                    },
+                  );
+                },
+              ),
+            ),
+          
+          // Likes and Time
+          Padding(
+            padding: const EdgeInsets.symmetric(horizontal: 8.0, vertical: 12.0),
+            child: Row(
+              children: [
+                Builder(
+                  builder: (context) {
+                    final postId = post['id'] as String? ?? '';
+                    final isLiked = _postLikedCache[postId] ?? (post['is_liked'] as bool? ?? false);
+                    final likesCount = post['likes_count'] as int? ?? 0;
+                    
+                    // Only show likes section if there are likes or user can like
+                    if (likesCount == 0 && !isLiked) {
+                      return const SizedBox.shrink();
+                    }
+                    
+                    return GestureDetector(
+                      onTap: () async {
+                        try {
+                          final newLikedState = !isLiked;
+                          
+                          // Optimistically update UI
+                          setState(() {
+                            _postLikedCache[postId] = newLikedState;
+                            post['is_liked'] = newLikedState;
+                            post['likes_count'] = newLikedState 
+                                ? (likesCount + 1) 
+                                : (likesCount > 0 ? likesCount - 1 : 0);
+                          });
+                          
+                          // Update database in background
+                          if (newLikedState) {
+                            await _databaseService.likePost(postId);
+                          } else {
+                            await _databaseService.unlikePost(postId);
+                          }
+                        } catch (e) {
+                          debugPrint('Error toggling like: $e');
+                          // Revert on error
+                          setState(() {
+                            _postLikedCache[postId] = isLiked;
+                            post['is_liked'] = isLiked;
+                            post['likes_count'] = likesCount;
+                          });
+                        }
+                      },
+                      child: Row(
+                        children: [
+                          Icon(
+                            Icons.favorite,
+                            color: isLiked ? Colors.red : Colors.purple[400],
+                            size: 28,
+                          ),
+                          const SizedBox(width: 8),
+                          Text(
+                            _formatLikes(post['likes_count'] as int? ?? 0),
+                            style: GoogleFonts.righteous(
+                              fontSize: 16,
+                              fontWeight: FontWeight.bold,
+                              color: Colors.white,
+                            ),
+                          ),
+                        ],
+                      ),
+                    );
+                  },
+                ),
+                const Spacer(),
+                Text(
+                  _getTimeAgo(DateTime.parse(post['created_at'] as String)),
+                  style: GoogleFonts.righteous(
+                    fontSize: 12,
+                    color: Colors.grey[400],
                   ),
+                ),
+              ],
+            ),
           ),
+          
+          // Description
+          if (post['description'] != null && (post['description'] as String).isNotEmpty)
+            Padding(
+              padding: const EdgeInsets.symmetric(horizontal: 8.0, vertical: 8.0),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(
+                    post['description'] as String,
+                    style: GoogleFonts.righteous(
+                      fontSize: 14,
+                      color: Colors.white,
+                    ),
+                    maxLines: 3,
+                    overflow: TextOverflow.ellipsis,
+                  ),
+                  if ((post['description'] as String).length > 100)
+                    Text(
+                      'voir plus',
+                      style: GoogleFonts.righteous(
+                        fontSize: 14,
+                        color: Colors.purple[400],
+                      ),
+                    ),
+                ],
+              ),
+            ),
+          
+          // Hashtags
+          if (post['hashtags'] != null && (post['hashtags'] as List).isNotEmpty)
+            Padding(
+              padding: const EdgeInsets.symmetric(horizontal: 8.0, vertical: 4.0),
+              child: Wrap(
+                spacing: 8,
+                children: (post['hashtags'] as List)
+                    .map((hashtag) => Text(
+                          hashtag.toString(),
+                          style: GoogleFonts.righteous(
+                            fontSize: 14,
+                            color: Colors.purple[300],
+                          ),
+                        ))
+                    .toList(),
+              ),
+            ),
         ],
       ),
     );
+  }
+
+  String _formatLikes(int likes) {
+    if (likes >= 1000) {
+      final k = (likes / 1000).toStringAsFixed(1);
+      return '$k K';
+    }
+    return likes.toString();
+  }
+
+  String _getTimeAgo(DateTime dateTime) {
+    final now = DateTime.now();
+    final difference = now.difference(dateTime);
+
+    if (difference.inDays > 0) {
+      return 'Il y a ${difference.inDays} jour${difference.inDays > 1 ? 's' : ''}';
+    } else if (difference.inHours > 0) {
+      return 'Il y a ${difference.inHours} heure${difference.inHours > 1 ? 's' : ''}';
+    } else if (difference.inMinutes > 0) {
+      return 'Il y a ${difference.inMinutes} minute${difference.inMinutes > 1 ? 's' : ''}';
+    } else {
+      return 'À l\'instant';
+    }
   }
 
   Widget _buildCarSpotCard(CarSpot spot) {

@@ -117,20 +117,6 @@ class _BrandDetailPageState extends State<BrandDetailPage> {
     }
   }
 
-  CarSpot? _getCarSpotForModel(String model) {
-    return _carSpots.firstWhere(
-      (spot) => spot.model.toLowerCase().trim() == model.toLowerCase().trim(),
-      orElse: () => CarSpot(
-        brand: widget.brand,
-        model: model,
-        imageUrls: [],
-        spottedAt: DateTime.now(),
-        createdAt: DateTime.now(),
-        updatedAt: DateTime.now(),
-      ),
-    );
-  }
-
   bool _isModelOwned(String model) {
     return _carSpots.any((spot) => 
       spot.model.toLowerCase().trim() == model.toLowerCase().trim()

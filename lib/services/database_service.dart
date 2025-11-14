@@ -863,4 +863,396 @@ class DatabaseService {
       throw Exception('Failed to delete user data: ${e.toString()}');
     }
   }
+
+  // ============================================
+  // POST METHODS
+  // ============================================
+
+  Future<Map<String, dynamic>> createPost({
+    String? carSpotId,
+    File? imageFile,
+    String? description,
+    List<String>? hashtags,
+  }) async {
+    try {
+      String? imageUrl;
+      
+      // Upload image if provided
+      if (imageFile != null) {
+        imageUrl = await uploadImage(imageFile);
+      } else if (carSpotId != null) {
+        // Get image from car spot if no file provided
+        final carSpot = await _supabase.client
+            .from('car_spots')
+            .select('image_urls')
+            .eq('id', carSpotId)
+            .eq('spotter_id', _supabase.currentUser!.id)
+            .single();
+        
+        final imageUrls = carSpot['image_urls'] as List<dynamic>?;
+        if (imageUrls != null && imageUrls.isNotEmpty) {
+          imageUrl = imageUrls.first as String;
+        }
+      }
+
+      // Extract hashtags from description if not provided
+      List<String> finalHashtags = hashtags ?? [];
+      if (description != null && finalHashtags.isEmpty) {
+        final words = description.split(' ');
+        finalHashtags = words.where((word) => word.startsWith('#')).toList();
+      }
+
+      final postData = {
+        'user_id': _supabase.currentUser!.id,
+        'car_spot_id': carSpotId,
+        'image_url': imageUrl,
+        'description': description,
+        'hashtags': finalHashtags,
+        'likes_count': 0,
+        'comments_count': 0,
+      };
+
+      final response = await _supabase.client
+          .from('posts')
+          .insert(postData)
+          .select()
+          .single();
+
+      debugPrint('DatabaseService: Post created successfully');
+      return response;
+    } catch (e) {
+      debugPrint('DatabaseService: Error creating post: $e');
+      throw Exception('Failed to create post: ${e.toString()}');
+    }
+  }
+
+  Future<List<Map<String, dynamic>>> getFollowingFeed({int limit = 20}) async {
+    try {
+      final response = await _supabase.client
+          .rpc('get_following_feed', params: {
+            'user_uuid': _supabase.currentUser!.id,
+            'limit_count': limit,
+          });
+      
+      return List<Map<String, dynamic>>.from(response);
+    } catch (e) {
+      debugPrint('DatabaseService: Error getting following feed: $e');
+      // Fallback to regular query if function doesn't exist
+      try {
+        final follows = await _supabase.client
+            .from('user_follows')
+            .select('following_id')
+            .eq('follower_id', _supabase.currentUser!.id);
+        
+        final followingIds = (follows as List)
+            .map((f) => f['following_id'] as String)
+            .toList();
+        
+        if (followingIds.isEmpty) {
+          return [];
+        }
+        
+        // Build query with IN clause for following IDs (more efficient)
+        var query = _supabase.client
+            .from('posts')
+            .select('*');
+        
+        // Filter by following IDs using OR conditions
+        if (followingIds.length == 1) {
+          query = query.eq('user_id', followingIds[0]);
+        } else {
+          // Build OR filter string
+          final orFilter = followingIds
+              .map((id) => 'user_id.eq.$id')
+              .join(',');
+          query = query.or(orFilter);
+        }
+        
+        final postsResponse = await query
+            .order('created_at', ascending: false)
+            .limit(limit);
+        
+        // Get user profiles for the posts
+        final userIds = (postsResponse as List)
+            .map((post) => post['user_id'] as String?)
+            .where((id) => id != null)
+            .toSet()
+            .toList();
+        
+        Map<String, Map<String, dynamic>> userProfilesMap = {};
+        if (userIds.isNotEmpty) {
+          final profilesResponse = await _supabase.client
+              .from('user_profiles')
+              .select('id, username')
+              .inFilter('id', userIds);
+          
+          for (var profile in profilesResponse as List) {
+            userProfilesMap[profile['id'] as String] = {
+              'username': profile['username'] ?? 'User',
+            };
+          }
+        }
+        
+        // Get all liked post IDs for current user in one query
+        final likedPosts = await _supabase.client
+            .from('post_likes')
+            .select('post_id')
+            .eq('user_id', _supabase.currentUser!.id);
+        
+        final likedPostIds = (likedPosts as List)
+            .map((like) => like['post_id'] as String)
+            .toSet();
+        
+        // Add is_liked field and user profile info to each post
+        final posts = (postsResponse as List).map((post) {
+          final postMap = Map<String, dynamic>.from(post);
+          postMap['is_liked'] = likedPostIds.contains(post['id']);
+          
+          // Add user profile info
+          final userId = post['user_id'] as String?;
+          if (userId != null && userProfilesMap.containsKey(userId)) {
+            final userProfile = userProfilesMap[userId]!;
+            postMap['username'] = userProfile['username'] ?? 'User';
+          } else {
+            postMap['username'] = 'User';
+          }
+          // avatar_url doesn't exist in user_profiles table
+          postMap['avatar_url'] = null;
+          
+          return postMap;
+        }).toList();
+        
+        return posts;
+      } catch (e2) {
+        throw Exception('Failed to get following feed: ${e2.toString()}');
+      }
+    }
+  }
+
+  Future<List<Map<String, dynamic>>> getDiscoveryFeed({int limit = 20}) async {
+    try {
+      final response = await _supabase.client
+          .rpc('get_discovery_feed', params: {
+            'user_uuid': _supabase.currentUser!.id,
+            'limit_count': limit,
+          });
+      
+      final posts = List<Map<String, dynamic>>.from(response);
+      debugPrint('DatabaseService: RPC get_discovery_feed returned ${posts.length} posts');
+      
+      // Log first post structure if available
+      if (posts.isNotEmpty) {
+        debugPrint('DatabaseService: First post keys: ${posts.first.keys.toList()}');
+        debugPrint('DatabaseService: First post data: ${posts.first}');
+      }
+      
+      // If RPC returns empty, try fallback to ensure we get all posts
+      // (RPC might still have the old WHERE clause excluding user's posts)
+      if (posts.isEmpty) {
+        debugPrint('DatabaseService: RPC returned empty, using fallback query...');
+        return await _getDiscoveryFeedFallback(limit);
+      }
+      
+      // Process posts to ensure they have the right structure
+      final processedPosts = posts.map((post) {
+        final postMap = Map<String, dynamic>.from(post);
+        // Ensure username is set
+        if (postMap['username'] == null) {
+          postMap['username'] = 'User';
+        }
+        return postMap;
+      }).toList();
+      
+      return processedPosts;
+    } catch (e) {
+      debugPrint('DatabaseService: Error getting discovery feed via RPC: $e');
+      // Fallback to regular query if function doesn't exist or fails
+      return await _getDiscoveryFeedFallback(limit);
+    }
+  }
+
+  Future<List<Map<String, dynamic>>> _getDiscoveryFeedFallback(int limit) async {
+    try {
+      // First, check if there are any posts at all
+      final allPostsCheck = await _supabase.client
+          .from('posts')
+          .select('id')
+          .limit(1);
+      debugPrint('DatabaseService: Total posts in database: ${(allPostsCheck as List).length}');
+      
+      // Get all posts and check likes in a single query (including user's own posts)
+      // First get posts
+      final postsResponse = await _supabase.client
+          .from('posts')
+          .select('*')
+          .order('created_at', ascending: false)
+          .limit(limit);
+      
+      // Get user IDs from posts
+      final userIds = (postsResponse as List)
+          .map((post) => post['user_id'] as String?)
+          .where((id) => id != null)
+          .toSet()
+          .toList();
+      
+      // Get user profiles for those users
+      Map<String, Map<String, dynamic>> userProfilesMap = {};
+      if (userIds.isNotEmpty) {
+        final profilesResponse = await _supabase.client
+            .from('user_profiles')
+            .select('id, username')
+            .inFilter('id', userIds);
+        
+        for (var profile in profilesResponse as List) {
+          userProfilesMap[profile['id'] as String] = {
+            'username': profile['username'] ?? 'User',
+          };
+        }
+      }
+      
+      debugPrint('DatabaseService: Raw posts query returned ${(postsResponse as List).length} posts');
+      debugPrint('DatabaseService: Found ${userProfilesMap.length} user profiles');
+      
+      // Get all liked post IDs for current user in one query
+      final likedPosts = await _supabase.client
+          .from('post_likes')
+          .select('post_id')
+          .eq('user_id', _supabase.currentUser!.id);
+      
+      final likedPostIds = (likedPosts as List)
+          .map((like) => like['post_id'] as String)
+          .toSet();
+      
+      // Add is_liked field and user profile info to each post
+      final posts = (postsResponse as List).map((post) {
+        final postMap = Map<String, dynamic>.from(post);
+        postMap['is_liked'] = likedPostIds.contains(post['id']);
+        
+        // Add user profile info from the map we fetched
+        final userId = post['user_id'] as String?;
+        if (userId != null && userProfilesMap.containsKey(userId)) {
+          final userProfile = userProfilesMap[userId]!;
+          postMap['username'] = userProfile['username'] ?? 'User';
+        } else {
+          postMap['username'] = 'User';
+        }
+        // avatar_url doesn't exist in user_profiles table
+        postMap['avatar_url'] = null;
+        
+        // Log processed post structure
+        debugPrint('DatabaseService: Processed post - id: ${postMap['id']}, username: ${postMap['username']}, image_url: ${postMap['image_url']}');
+        
+        return postMap;
+      }).toList();
+      
+      debugPrint('DatabaseService: Fallback query returned ${posts.length} posts');
+      if (posts.isNotEmpty) {
+        debugPrint('DatabaseService: Sample post keys: ${posts.first.keys.toList()}');
+      }
+      return posts;
+    } catch (e2) {
+      debugPrint('DatabaseService: Fallback query also failed: $e2');
+      throw Exception('Failed to get discovery feed: ${e2.toString()}');
+    }
+  }
+
+  Future<void> likePost(String postId) async {
+    try {
+      await _supabase.client
+          .from('post_likes')
+          .insert({
+            'post_id': postId,
+            'user_id': _supabase.currentUser!.id,
+          });
+      debugPrint('DatabaseService: Post liked successfully');
+    } catch (e) {
+      // If already liked, ignore error
+      if (e.toString().contains('duplicate') || e.toString().contains('unique')) {
+        debugPrint('DatabaseService: Post already liked');
+        return;
+      }
+      debugPrint('DatabaseService: Error liking post: $e');
+      throw Exception('Failed to like post: ${e.toString()}');
+    }
+  }
+
+  Future<void> unlikePost(String postId) async {
+    try {
+      await _supabase.client
+          .from('post_likes')
+          .delete()
+          .eq('post_id', postId)
+          .eq('user_id', _supabase.currentUser!.id);
+      debugPrint('DatabaseService: Post unliked successfully');
+    } catch (e) {
+      debugPrint('DatabaseService: Error unliking post: $e');
+      throw Exception('Failed to unlike post: ${e.toString()}');
+    }
+  }
+
+  Future<bool> isPostLiked(String postId) async {
+    try {
+      final response = await _supabase.client
+          .from('post_likes')
+          .select('id')
+          .eq('post_id', postId)
+          .eq('user_id', _supabase.currentUser!.id)
+          .maybeSingle();
+      
+      return response != null;
+    } catch (e) {
+      debugPrint('DatabaseService: Error checking if post is liked: $e');
+      return false;
+    }
+  }
+
+  Future<void> followUser(String userId) async {
+    try {
+      await _supabase.client
+          .from('user_follows')
+          .insert({
+            'follower_id': _supabase.currentUser!.id,
+            'following_id': userId,
+          });
+      debugPrint('DatabaseService: User followed successfully');
+    } catch (e) {
+      // If already following, ignore error
+      if (e.toString().contains('duplicate') || e.toString().contains('unique')) {
+        debugPrint('DatabaseService: Already following this user');
+        return;
+      }
+      debugPrint('DatabaseService: Error following user: $e');
+      throw Exception('Failed to follow user: ${e.toString()}');
+    }
+  }
+
+  Future<void> unfollowUser(String userId) async {
+    try {
+      await _supabase.client
+          .from('user_follows')
+          .delete()
+          .eq('follower_id', _supabase.currentUser!.id)
+          .eq('following_id', userId);
+      debugPrint('DatabaseService: User unfollowed successfully');
+    } catch (e) {
+      debugPrint('DatabaseService: Error unfollowing user: $e');
+      throw Exception('Failed to unfollow user: ${e.toString()}');
+    }
+  }
+
+  Future<bool> isFollowingUser(String userId) async {
+    try {
+      final response = await _supabase.client
+          .from('user_follows')
+          .select('id')
+          .eq('follower_id', _supabase.currentUser!.id)
+          .eq('following_id', userId)
+          .maybeSingle();
+      
+      return response != null;
+    } catch (e) {
+      debugPrint('DatabaseService: Error checking if following user: $e');
+      return false;
+    }
+  }
 }
