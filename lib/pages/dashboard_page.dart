@@ -93,15 +93,18 @@ class _DashboardPageState extends State<DashboardPage> {
     return Scaffold(
       backgroundColor: Colors.transparent,
       body: SafeArea(
-        child: IndexedStack(
-          index: _selectedIndex,
-          children: [
-            _buildHomeTab(),
-            _buildCollectionTab(),
-            _buildSpotTab(),
-            _buildFeedTab(),
-            _buildProfileTab(),
-          ],
+        child: Padding(
+          padding: const EdgeInsets.symmetric(horizontal: 0.0, vertical: 16.0),
+          child: IndexedStack(
+            index: _selectedIndex,
+            children: [
+              _buildHomeTab(),
+              _buildCollectionTab(),
+              _buildSpotTab(),
+              _buildFeedTab(),
+              _buildProfileTab(),
+            ],
+          ),
         ),
       ),
       bottomNavigationBar: Container(
@@ -312,6 +315,7 @@ class _DashboardPageState extends State<DashboardPage> {
                           fontSize: 32,
                           fontWeight: FontWeight.bold,
                           color: Colors.white,
+                          
                         ),
                       ),
                       Text(
@@ -450,7 +454,7 @@ class _DashboardPageState extends State<DashboardPage> {
         crossAxisCount: 3,
         crossAxisSpacing: 12,
         mainAxisSpacing: 12,
-        childAspectRatio: 0.75,
+        childAspectRatio: 1,
       ),
       itemCount: brands.length,
       itemBuilder: (context, index) {
@@ -486,26 +490,30 @@ class _DashboardPageState extends State<DashboardPage> {
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
                 // Brand name header
-                Container(
-                  padding: const EdgeInsets.all(8),
-                  decoration: BoxDecoration(
-                    color: Colors.black.withValues(alpha: 0.5),
-                    borderRadius: const BorderRadius.only(
-                      topLeft: Radius.circular(12),
-                      topRight: Radius.circular(12),
+                Center(
+                  child: Container(
+                    padding: const EdgeInsets.all(8),
+                    decoration: BoxDecoration(
+                      borderRadius: const BorderRadius.only(
+                        topLeft: Radius.circular(12),
+                        topRight: Radius.circular(12),
+                      ),
                     ),
-                  ),
-                  child: Text(
-                    brand.replaceAll('_', ' '),
-                    style: GoogleFonts.righteous(
-                      fontSize: 12,
-                      fontWeight: FontWeight.bold,
-                      color: Colors.white,
+                    child: Text(
+                      brand.replaceAll('_', ' ').split(' ').map((word) => 
+                      word.isEmpty ? '' : word[0].toUpperCase() + word.substring(1).toLowerCase()
+                      ).join(' '),
+                      style: GoogleFonts.righteous(
+                        fontSize: 12,
+                        color: Colors.white,
+                      ),
+                      textAlign: TextAlign.center,
+                      maxLines: 1,
+                      overflow: TextOverflow.ellipsis,
                     ),
-                    maxLines: 1,
-                    overflow: TextOverflow.ellipsis,
                   ),
                 ),
+
                 // Image or placeholder
                 Expanded(
                   child: Container(
@@ -603,7 +611,7 @@ class _DashboardPageState extends State<DashboardPage> {
         // Brand Header
         Container(
           width: double.infinity,
-          padding: const EdgeInsets.symmetric(horizontal: 20.0, vertical: 16.0),
+          padding: const EdgeInsets.symmetric(horizontal: 20.0, vertical: 0.0),
           decoration: BoxDecoration(
             color: Colors.transparent,
           ),
@@ -873,7 +881,9 @@ class _DashboardPageState extends State<DashboardPage> {
         Padding(
           padding: const EdgeInsets.symmetric(horizontal: 20.0, vertical: 16.0),
           child: Text(
-            '${carSpot.brand.replaceAll('_', ' ')} ${carSpot.model}',
+            '${carSpot.brand.replaceAll('_', ' ').split(' ').map((word) => 
+              word.isEmpty ? '' : word[0].toUpperCase() + word.substring(1).toLowerCase()
+    )       .join(' ')} ${carSpot.model}',
             style: GoogleFonts.righteous(
               fontSize: 20,
               fontWeight: FontWeight.bold,
