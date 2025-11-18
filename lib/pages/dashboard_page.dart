@@ -128,6 +128,11 @@ class _DashboardPageState extends State<DashboardPage> {
               _feedLoaded = false;
               _feedLoadScheduled = false;
             }
+            // When clicking home button, reset brand and car selection to show brands window
+            if (index == 0) {
+              _selectedBrand = null;
+              _selectedCar = null;
+            }
             setState(() => _selectedIndex = index);
           },
           type: BottomNavigationBarType.fixed,
@@ -364,7 +369,7 @@ class _DashboardPageState extends State<DashboardPage> {
                     controller: _searchController,
                     style: GoogleFonts.righteous(color: Colors.white),
                     decoration: InputDecoration(
-                      hintText: 'Rechercher un modèle',
+                      hintText: _selectedBrand == null ? 'Rechercher une marque' : 'Rechercher un modèle',
                       hintStyle: GoogleFonts.righteous(
                         color: Colors.grey[400],
                         fontSize: 14,
@@ -629,6 +634,16 @@ class _DashboardPageState extends State<DashboardPage> {
       debugPrint('Dashboard: Available brands in car_brands.dart: ${CarBrandsData.getAllBrandNames().take(10).join(', ')}...');
     }
     
+    // Filter models based on search query
+    List<String> filteredModels = _searchQuery.isEmpty
+        ? allModels
+        : allModels.where((model) => model.toLowerCase().contains(_searchQuery)).toList();
+    
+    // Filter brand cars based on search query
+    List<CarSpot> filteredBrandCars = _searchQuery.isEmpty
+        ? brandCars
+        : brandCars.where((spot) => spot.model.toLowerCase().contains(_searchQuery)).toList();
+    
     return Column(
       children: [
         // Brand Header
@@ -695,48 +710,68 @@ class _DashboardPageState extends State<DashboardPage> {
           child: Padding(
             padding: const EdgeInsets.all(16.0),
             child: allModels.isEmpty && brandCars.isNotEmpty
-                ? GridView.builder(
-                    gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
-                      crossAxisCount: 2,
-                      crossAxisSpacing: 12,
-                      mainAxisSpacing: 12,
-                      childAspectRatio: 0.7,
-                    ),
-                    itemCount: brandCars.length,
-                    itemBuilder: (context, index) {
-                      final carSpot = brandCars[index];
-                      return _buildBrandCarCard(carSpot, true);
-                    },
-                  )
-                : GridView.builder(
-                    gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
-                      crossAxisCount: 2,
-                      crossAxisSpacing: 12,
-                      mainAxisSpacing: 12,
-                      childAspectRatio: 0.7,
-                    ),
-                    itemCount: allModels.length,
-                    itemBuilder: (context, index) {
-                      final model = allModels[index];
-                      // Case-insensitive model matching
-                      final isOwned = brandCars.any((spot) => 
-                        spot.model.toLowerCase().trim() == model.toLowerCase().trim()
-                      );
-                      final carSpot = isOwned
-                          ? brandCars.firstWhere((spot) => 
-                              spot.model.toLowerCase().trim() == model.toLowerCase().trim()
-                            )
-                          : CarSpot(
-                              brand: brand,
-                              model: model,
-                              imageUrls: [],
-                              spottedAt: DateTime.now(),
-                              createdAt: DateTime.now(),
-                              updatedAt: DateTime.now(),
-                            );
-                      return _buildBrandCarCard(carSpot, isOwned);
-                    },
-                  ),
+                ? filteredBrandCars.isEmpty
+                    ? Center(
+                        child: Text(
+                          'Aucun résultat trouvé',
+                          style: GoogleFonts.righteous(
+                            fontSize: 16,
+                            color: Colors.grey[400],
+                          ),
+                        ),
+                      )
+                    : GridView.builder(
+                        gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
+                          crossAxisCount: 2,
+                          crossAxisSpacing: 12,
+                          mainAxisSpacing: 12,
+                          childAspectRatio: 0.7,
+                        ),
+                        itemCount: filteredBrandCars.length,
+                        itemBuilder: (context, index) {
+                          final carSpot = filteredBrandCars[index];
+                          return _buildBrandCarCard(carSpot, true);
+                        },
+                      )
+                : filteredModels.isEmpty
+                    ? Center(
+                        child: Text(
+                          'Aucun résultat trouvé',
+                          style: GoogleFonts.righteous(
+                            fontSize: 16,
+                            color: Colors.grey[400],
+                          ),
+                        ),
+                      )
+                    : GridView.builder(
+                        gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
+                          crossAxisCount: 2,
+                          crossAxisSpacing: 12,
+                          mainAxisSpacing: 12,
+                          childAspectRatio: 0.7,
+                        ),
+                        itemCount: filteredModels.length,
+                        itemBuilder: (context, index) {
+                          final model = filteredModels[index];
+                          // Case-insensitive model matching
+                          final isOwned = brandCars.any((spot) => 
+                            spot.model.toLowerCase().trim() == model.toLowerCase().trim()
+                          );
+                          final carSpot = isOwned
+                              ? brandCars.firstWhere((spot) => 
+                                  spot.model.toLowerCase().trim() == model.toLowerCase().trim()
+                                )
+                              : CarSpot(
+                                  brand: brand,
+                                  model: model,
+                                  imageUrls: [],
+                                  spottedAt: DateTime.now(),
+                                  createdAt: DateTime.now(),
+                                  updatedAt: DateTime.now(),
+                                );
+                          return _buildBrandCarCard(carSpot, isOwned);
+                        },
+                      ),
           ),
         ),
       ],
@@ -834,8 +869,20 @@ class _DashboardPageState extends State<DashboardPage> {
   Future<CarSpot?> _getFirstCarSpotForBrand(String brand) async {
     try {
       final carSpots = await _databaseService.getCarSpots();
-      final brandSpots = carSpots.where((spot) => spot.brand == brand).toList();
-      return brandSpots.isNotEmpty ? brandSpots.first : null;
+      // Normalize brand name for matching (handle case differences)
+      final normalizedBrand = brand.toUpperCase().replaceAll(' ', '_');
+      final brandSpots = carSpots.where((spot) {
+        final spotBrand = spot.brand.toUpperCase().replaceAll(' ', '_');
+        return spotBrand == normalizedBrand;
+      }).toList();
+      
+      if (brandSpots.isEmpty) {
+        return null;
+      }
+      
+      // Sort by createdAt in descending order (most recent first) and return the first one
+      brandSpots.sort((a, b) => b.createdAt.compareTo(a.createdAt));
+      return brandSpots.first;
     } catch (e) {
       debugPrint('Dashboard: Error getting first car spot for brand: $e');
       return null;
@@ -843,6 +890,18 @@ class _DashboardPageState extends State<DashboardPage> {
   }
 
   Widget _buildCarDetailsView(CarSpot carSpot) {
+    // Get all cars of the same model (same brand and model)
+    final normalizedBrand = carSpot.brand.toUpperCase().replaceAll(' ', '_');
+    final normalizedModel = carSpot.model.toLowerCase().trim();
+    final modelCars = _carSpots.where((spot) {
+      final spotBrand = spot.brand.toUpperCase().replaceAll(' ', '_');
+      final spotModel = spot.model.toLowerCase().trim();
+      return spotBrand == normalizedBrand && spotModel == normalizedModel;
+    }).toList();
+    
+    // Sort by createdAt descending (most recent first)
+    modelCars.sort((a, b) => b.createdAt.compareTo(a.createdAt));
+    
     return Column(
       children: [
         // Back button header with car model name
@@ -894,123 +953,163 @@ class _DashboardPageState extends State<DashboardPage> {
             ],
           ),
         ),
-        // Car Image with margins (matching the design)
+        // Feed of all cars of this model
         Expanded(
-          flex: 3,
-          child: Container(
-            width: double.infinity,
-            margin: const EdgeInsets.symmetric(horizontal: 0.0),
-            child: carSpot.imageUrls.isNotEmpty
-                ? ClipRRect(
-                    borderRadius: BorderRadius.circular(12),
+          child: modelCars.isEmpty
+              ? Center(
+                  child: Text(
+                    'Aucune image trouvée',
+                    style: GoogleFonts.righteous(
+                      fontSize: 16,
+                      color: Colors.grey[400],
+                    ),
+                  ),
+                )
+              : ListView.builder(
+                  padding: const EdgeInsets.symmetric(horizontal: 16.0, vertical: 8.0),
+                  itemCount: modelCars.length,
+                  itemBuilder: (context, index) {
+                    final spot = modelCars[index];
+                    return _buildModelCarFeedItem(spot);
+                  },
+                ),
+        ),
+      ],
+    );
+  }
+
+  Widget _buildModelCarFeedItem(CarSpot carSpot) {
+    return Container(
+      margin: const EdgeInsets.only(bottom: 16.0),
+      decoration: BoxDecoration(
+        borderRadius: BorderRadius.circular(12),
+        border: Border.all(
+          color: Colors.white.withValues(alpha: 0.2),
+          width: 1,
+        ),
+      ),
+      child: ClipRRect(
+        borderRadius: BorderRadius.circular(12),
+        child: Stack(
+          children: [
+            // Car Image
+            carSpot.imageUrls.isNotEmpty
+                ? SizedBox(
+                    width: double.infinity,
+                    height: 300,
                     child: Image.network(
                       carSpot.imageUrls.first,
-                      fit: BoxFit.fitWidth,
                       width: double.infinity,
+                      fit: BoxFit.cover,
                       errorBuilder: (context, error, stackTrace) {
-                        return _buildCarImagePlaceholder();
+                        return SizedBox(
+                          width: double.infinity,
+                          height: 300,
+                          child: _buildCarImagePlaceholder(),
+                        );
                       },
                     ),
                   )
-                : _buildCarImagePlaceholder(),
-          ),
+                : SizedBox(
+                    width: double.infinity,
+                    height: 300,
+                    child: _buildCarImagePlaceholder(),
+                  ),
+            // 3 dots menu button in top right corner
+            Positioned(
+              top: 8,
+              right: 8,
+              child: PopupMenuButton<String>(
+                icon: Container(
+                  width: 36,
+                  height: 36,
+                  decoration: BoxDecoration(
+                    shape: BoxShape.circle,
+                    color: Colors.black.withValues(alpha: 0.6),
+                  ),
+                  child: const Icon(
+                    Icons.more_vert,
+                    color: Colors.white,
+                    size: 20,
+                  ),
+                ),
+                shape: RoundedRectangleBorder(
+                  borderRadius: BorderRadius.circular(12),
+                ),
+                color: Colors.grey[900],
+                onSelected: (value) {
+                  switch (value) {
+                    case 'post':
+                      Navigator.push(
+                        context,
+                        MaterialPageRoute(
+                          builder: (context) => CreatePostPage(initialCarSpot: carSpot),
+                        ),
+                      );
+                      break;
+                    case 'edit':
+                      _showReplaceModelModal(context, carSpot);
+                      break;
+                    case 'delete':
+                      _showDeleteModelModal(context, carSpot);
+                      break;
+                  }
+                },
+                itemBuilder: (BuildContext context) => [
+                  PopupMenuItem<String>(
+                    value: 'post',
+                    child: Row(
+                      children: [
+                        Icon(Icons.thumb_up, color: Colors.purple[300], size: 20),
+                        const SizedBox(width: 12),
+                        Text(
+                          'Créer un post',
+                          style: GoogleFonts.righteous(
+                            fontSize: 14,
+                            color: Colors.white,
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
+                  PopupMenuItem<String>(
+                    value: 'edit',
+                    child: Row(
+                      children: [
+                        Icon(Icons.edit, color: Colors.teal[300], size: 20),
+                        const SizedBox(width: 12),
+                        Text(
+                          'Editer',
+                          style: GoogleFonts.righteous(
+                            fontSize: 14,
+                            color: Colors.white,
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
+                  PopupMenuItem<String>(
+                    value: 'delete',
+                    child: Row(
+                      children: [
+                        Icon(Icons.delete, color: Colors.red[300], size: 20),
+                        const SizedBox(width: 12),
+                        Text(
+                          'Supprimer',
+                          style: GoogleFonts.righteous(
+                            fontSize: 14,
+                            color: Colors.white,
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
+                ],
+              ),
+            ),
+          ],
         ),
-
-        // Action Buttons
-        Padding(
-          padding: const EdgeInsets.symmetric(horizontal: 20.0, vertical: 8.0),
-          child: Column(
-            children: [
-              // Créer un post button
-              SizedBox(
-                width: double.infinity,
-                child: ElevatedButton.icon(
-                  onPressed: () {
-                    Navigator.push(
-                      context,
-                      MaterialPageRoute(
-                        builder: (context) => CreatePostPage(initialCarSpot: carSpot),
-                      ),
-                    );
-                  },
-                  icon: Icon(Icons.thumb_up, color: Colors.white),
-                  label: Text(
-                    'Créer un post',
-                    style: GoogleFonts.righteous(
-                      fontSize: 16,
-                      fontWeight: FontWeight.bold,
-                      color: Colors.white,
-                    ),
-                  ),
-                  style: ElevatedButton.styleFrom(
-                    backgroundColor: Colors.purple[700],
-                    foregroundColor: Colors.white,
-                    padding: const EdgeInsets.symmetric(vertical: 16),
-                    shape: RoundedRectangleBorder(
-                      borderRadius: BorderRadius.circular(12),
-                    ),
-                  ),
-                ),
-              ),
-              const SizedBox(height: 12),
-              // Editer button
-              SizedBox(
-                width: double.infinity,
-                child: ElevatedButton.icon(
-                  onPressed: () {
-                    _showReplaceModelModal(context, carSpot);
-                  },
-                  icon: Icon(Icons.edit, color: Colors.white),
-                  label: Text(
-                    'Editer',
-                    style: GoogleFonts.righteous(
-                      fontSize: 16,
-                      fontWeight: FontWeight.bold,
-                      color: Colors.white,
-                    ),
-                  ),
-                  style: ElevatedButton.styleFrom(
-                    backgroundColor: Colors.teal[600],
-                    foregroundColor: Colors.white,
-                    padding: const EdgeInsets.symmetric(vertical: 16),
-                    shape: RoundedRectangleBorder(
-                      borderRadius: BorderRadius.circular(12),
-                    ),
-                  ),
-                ),
-              ),
-              const SizedBox(height: 12),
-              // Supprimer button
-              SizedBox(
-                width: double.infinity,
-                child: ElevatedButton.icon(
-                  onPressed: () {
-                    _showDeleteModelModal(context, carSpot);
-                  },
-                  icon: Icon(Icons.delete, color: Colors.white),
-                  label: Text(
-                    'Supprimer',
-                    style: GoogleFonts.righteous(
-                      fontSize: 16,
-                      fontWeight: FontWeight.bold,
-                      color: Colors.white,
-                    ),
-                  ),
-                  style: ElevatedButton.styleFrom(
-                    backgroundColor: Colors.red[800],
-                    foregroundColor: Colors.white,
-                    padding: const EdgeInsets.symmetric(vertical: 16),
-                    shape: RoundedRectangleBorder(
-                      borderRadius: BorderRadius.circular(12),
-                    ),
-                  ),
-                ),
-              ),
-            ],
-          ),
-        ),
-        const SizedBox(height: 20),
-      ],
+      ),
     );
   }
 

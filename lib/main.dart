@@ -19,43 +19,71 @@ void main() async {
   runApp(const SpotCarzApp());
 }
 
+// Custom ScrollBehavior to disable overscroll glow and bounce effects
+class NoGlowScrollBehavior extends ScrollBehavior {
+  const NoGlowScrollBehavior();
+  
+  @override
+  Widget buildOverscrollIndicator(BuildContext context, Widget child, ScrollableDetails details) {
+    return child;
+  }
+  
+  @override
+  ScrollPhysics getScrollPhysics(BuildContext context) {
+    switch (getPlatform(context)) {
+      case TargetPlatform.iOS:
+      case TargetPlatform.macOS:
+      case TargetPlatform.android:
+        return const ClampingScrollPhysics();
+      default:
+        return super.getScrollPhysics(context);
+    }
+  }
+}
+
 class SpotCarzApp extends StatelessWidget {
   const SpotCarzApp({super.key});
 
   @override
   Widget build(BuildContext context) {
-    return MaterialApp(
-      title: 'Spot Carz - Car Spotting App',
-      debugShowCheckedModeBanner: false,
-      theme: ThemeData(
-        useMaterial3: true,
-        colorScheme: ColorScheme.fromSeed(
-          seedColor: Colors.red,
-          brightness: Brightness.dark,
-        ),
-        textTheme: GoogleFonts.righteousTextTheme(
-          Theme.of(context).textTheme,
-        ),
-        appBarTheme: AppBarTheme(
-          backgroundColor: Colors.transparent,
-          elevation: 0,
-          titleTextStyle: GoogleFonts.righteous(
-            fontSize: 20,
-            fontWeight: FontWeight.bold,
-            color: Colors.white,
+    return ScrollConfiguration(
+      behavior: const NoGlowScrollBehavior(),
+      child: MaterialApp(
+        title: 'Spot Carz - Car Spotting App',
+        debugShowCheckedModeBanner: false,
+        theme: ThemeData(
+          useMaterial3: true,
+          colorScheme: ColorScheme.fromSeed(
+            seedColor: Colors.red,
+            brightness: Brightness.dark,
           ),
-        ),
-        elevatedButtonTheme: ElevatedButtonThemeData(
-          style: ElevatedButton.styleFrom(
-            backgroundColor: Colors.red[600],
-            foregroundColor: Colors.white,
-            shape: RoundedRectangleBorder(
-              borderRadius: BorderRadius.circular(12),
+          textTheme: GoogleFonts.righteousTextTheme(
+            Theme.of(context).textTheme,
+          ),
+          appBarTheme: AppBarTheme(
+            backgroundColor: Colors.transparent,
+            elevation: 0,
+            titleTextStyle: GoogleFonts.righteous(
+              fontSize: 20,
+              fontWeight: FontWeight.bold,
+              color: Colors.white,
             ),
           ),
+          elevatedButtonTheme: ElevatedButtonThemeData(
+            style: ElevatedButton.styleFrom(
+              backgroundColor: Colors.red[600],
+              foregroundColor: Colors.white,
+              shape: RoundedRectangleBorder(
+                borderRadius: BorderRadius.circular(12),
+              ),
+            ),
+          ),
+          scrollbarTheme: const ScrollbarThemeData(
+            thickness: MaterialStatePropertyAll(0),
+          ),
         ),
+        home: const AuthWrapper(),
       ),
-      home: const AuthWrapper(),
     );
   }
 }
@@ -185,36 +213,39 @@ class _AuthWrapperState extends State<AuthWrapper> {
     // Check current session first (for hot reload scenarios where stream might not emit immediately)
     final currentSession = Supabase.instance.client.auth.currentSession;
     
-    return StreamBuilder<AuthState>(
-      stream: _authService.authStateChanges,
-      builder: (context, snapshot) {
-        // Use session from stream, or fallback to current session for immediate check
-        final session = snapshot.hasData 
-            ? snapshot.data!.session 
-            : currentSession;
-        
-        // Show loading only if we truly don't know the state yet
-        if (!snapshot.hasData && currentSession == null && 
-            snapshot.connectionState == ConnectionState.waiting) {
-          return BackgroundContainer(
-            child: const Scaffold(
-              backgroundColor: Colors.transparent,
-              body: Center(
-                child: CircularProgressIndicator(color: Colors.red),
+    return ScrollConfiguration(
+      behavior: const NoGlowScrollBehavior(),
+      child: StreamBuilder<AuthState>(
+        stream: _authService.authStateChanges,
+        builder: (context, snapshot) {
+          // Use session from stream, or fallback to current session for immediate check
+          final session = snapshot.hasData 
+              ? snapshot.data!.session 
+              : currentSession;
+          
+          // Show loading only if we truly don't know the state yet
+          if (!snapshot.hasData && currentSession == null && 
+              snapshot.connectionState == ConnectionState.waiting) {
+            return BackgroundContainer(
+              child: const Scaffold(
+                backgroundColor: Colors.transparent,
+                body: Center(
+                  child: CircularProgressIndicator(color: Colors.red),
+                ),
               ),
-            ),
-          );
-        }
-        
-        if (session != null) {
-          return BackgroundContainer(
-            child: const DashboardPage(),
-          );
-        } else {
-          // HomePage has its own background, don't wrap it
-          return const HomePage();
-        }
-      },
+            );
+          }
+          
+          if (session != null) {
+            return BackgroundContainer(
+              child: const DashboardPage(),
+            );
+          } else {
+            // HomePage has its own background, don't wrap it
+            return const HomePage();
+          }
+        },
+      ),
     );
   }
 }
