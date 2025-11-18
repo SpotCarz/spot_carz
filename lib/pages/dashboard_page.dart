@@ -226,7 +226,7 @@ class _DashboardPageState extends State<DashboardPage> {
         : _brands.where((brand) => brand.toLowerCase().contains(_searchQuery)).toList();
 
     return Padding(
-      padding: const EdgeInsets.symmetric(horizontal: 20.0, vertical: 16.0),
+      padding: const EdgeInsets.symmetric(horizontal: 0.0, vertical: 16.0),
       child: Column(
         children: [
           // Header with Logo
@@ -277,98 +277,105 @@ class _DashboardPageState extends State<DashboardPage> {
           const SizedBox(height: 16),
           
           // Title Section with Vehicle count
-          Stack(
-            children: [
-              // Ghosted "Mon garage" text in background
-              Positioned(
-                left: -110,
-                right: 0,
-                bottom: 0,
-                child: Text(
-                  'Mon garage',
-                  style: GoogleFonts.righteous(
-                    fontSize: 50,
-                    fontWeight: FontWeight.bold,
-                    color: Colors.white.withValues(alpha: 0.1),
-                  ),
-                  textAlign: TextAlign.center,
-                ),
-              ),
-              // Main title with icon and vehicle count on same row
-              Row(
-                mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                crossAxisAlignment: CrossAxisAlignment.center,
-                children: [
-                  // Title with icon
-                  Row(
-                    mainAxisAlignment: MainAxisAlignment.center,
-                    children: [
-                      Image.asset(
-                        'assets/images/menu_icons/garage.png',
-                        width: 28,
-                        height: 28,
-                        color: Colors.white,
-                      ),
-                      const SizedBox(width: 8),
-                      Text(
+          Padding(
+            padding: const EdgeInsets.symmetric(horizontal: 20.0),
+            child: Column(
+              children: [
+                Stack(
+                  children: [
+                    // Ghosted "Mon garage" text in background
+                    Positioned(
+                      left: -110,
+                      right: 0,
+                      bottom: 0,
+                      child: Text(
                         'Mon garage',
                         style: GoogleFonts.righteous(
-                          fontSize: 36,
+                          fontSize: 50,
                           fontWeight: FontWeight.bold,
-                          color: Colors.white,
+                          color: Colors.white.withValues(alpha: 0.1),
                         ),
+                        textAlign: TextAlign.center,
                       ),
-                    ],
-                  ),
-                  // Vehicle count - number above text
-                  Column(
-                    crossAxisAlignment: CrossAxisAlignment.end,
-                    mainAxisSize: MainAxisSize.min,
-                    children: [
-                      Text(
-                        '${_carSpots.length}',
-                        style: GoogleFonts.righteous(
-                          fontSize: 32,
-                          fontWeight: FontWeight.bold,
-                          color: Colors.white,
-                          
+                    ),
+                    // Main title with icon and vehicle count on same row
+                    Row(
+                      mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                      crossAxisAlignment: CrossAxisAlignment.center,
+                      children: [
+                        // Title with icon
+                        Row(
+                          mainAxisAlignment: MainAxisAlignment.center,
+                          children: [
+                            Image.asset(
+                              'assets/images/menu_icons/garage.png',
+                              width: 28,
+                              height: 28,
+                              color: Colors.white,
+                            ),
+                            const SizedBox(width: 8),
+                            Text(
+                              'Mon garage',
+                              style: GoogleFonts.righteous(
+                                fontSize: 36,
+                                fontWeight: FontWeight.bold,
+                                color: Colors.white,
+                              ),
+                            ),
+                          ],
                         ),
-                      ),
-                      Text(
-                        'Véhicules',
-                        style: GoogleFonts.righteous(
-                          fontSize: 14,
-                          color: Colors.white.withValues(alpha: 0.6),
+                        // Vehicle count - number above text
+                        Column(
+                          crossAxisAlignment: CrossAxisAlignment.end,
+                          mainAxisSize: MainAxisSize.min,
+                          children: [
+                            Text(
+                              '${_carSpots.length}',
+                              style: GoogleFonts.righteous(
+                                fontSize: 32,
+                                fontWeight: FontWeight.bold,
+                                color: Colors.white,
+                                
+                              ),
+                            ),
+                            Text(
+                              'Véhicules',
+                              style: GoogleFonts.righteous(
+                                fontSize: 14,
+                                color: Colors.white.withValues(alpha: 0.6),
+                              ),
+                            ),
+                          ],
                         ),
-                      ),
-                    ],
-                  ),
-                ],
-              ),
-            ],
-          ),
-          
-          const SizedBox(height: 16),
-          
-          // Search Bar
-          Container(
-            decoration: BoxDecoration(
-              color: Colors.grey[300]!.withValues(alpha: 0.3),
-              borderRadius: BorderRadius.circular(12),
-            ),
-            child: TextField(
-              controller: _searchController,
-              style: GoogleFonts.righteous(color: Colors.white),
-              decoration: InputDecoration(
-                hintText: 'Rechercher un modèle',
-                hintStyle: GoogleFonts.righteous(
-                  color: Colors.grey[400],
-                  fontSize: 14,
+                      ],
+                    ),
+                  ],
                 ),
-                prefixIcon: Icon(Icons.search, color: Colors.grey[400]),
-                border: InputBorder.none,
-                contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
-              ),
+                
+                const SizedBox(height: 16),
+                
+                // Search Bar
+                Container(
+                  decoration: BoxDecoration(
+                    color: Colors.grey[300]!.withValues(alpha: 0.3),
+                    borderRadius: BorderRadius.circular(12),
+                  ),
+                  child: TextField(
+                    controller: _searchController,
+                    style: GoogleFonts.righteous(color: Colors.white),
+                    decoration: InputDecoration(
+                      hintText: 'Rechercher un modèle',
+                      hintStyle: GoogleFonts.righteous(
+                        color: Colors.grey[400],
+                        fontSize: 14,
+                      ),
+                      prefixIcon: Icon(Icons.search, color: Colors.grey[400]),
+                      border: InputBorder.none,
+                      contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+                    ),
+                  ),
+                ),
+              ],
             ),
           ),
           
@@ -841,7 +848,7 @@ class _DashboardPageState extends State<DashboardPage> {
         // Back button header with car model name
         Container(
           width: double.infinity,
-          padding: const EdgeInsets.symmetric(horizontal: 0.0, vertical: 16.0),
+          padding: const EdgeInsets.symmetric(horizontal: 20.0, vertical: 16.0),
           child: Row(
             children: [
               GestureDetector(
@@ -898,7 +905,7 @@ class _DashboardPageState extends State<DashboardPage> {
                     borderRadius: BorderRadius.circular(12),
                     child: Image.network(
                       carSpot.imageUrls.first,
-                      fit: BoxFit.cover,
+                      fit: BoxFit.fitWidth,
                       width: double.infinity,
                       errorBuilder: (context, error, stackTrace) {
                         return _buildCarImagePlaceholder();
@@ -908,21 +915,7 @@ class _DashboardPageState extends State<DashboardPage> {
                 : _buildCarImagePlaceholder(),
           ),
         ),
-        // Car Name (keeping for consistency, but can be removed if not needed)
-        Padding(
-          padding: const EdgeInsets.symmetric(horizontal: 20.0, vertical: 16.0),
-          child: Text(
-            '${carSpot.brand.replaceAll('_', ' ').split(' ').map((word) => 
-              word.isEmpty ? '' : word[0].toUpperCase() + word.substring(1).toLowerCase()
-    )       .join(' ')} ${carSpot.model}',
-            style: GoogleFonts.righteous(
-              fontSize: 20,
-              fontWeight: FontWeight.bold,
-              color: Colors.white,
-            ),
-            textAlign: TextAlign.center,
-          ),
-        ),
+
         // Action Buttons
         Padding(
           padding: const EdgeInsets.symmetric(horizontal: 20.0, vertical: 8.0),
