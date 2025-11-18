@@ -730,7 +730,12 @@ class _DashboardPageState extends State<DashboardPage> {
                         itemCount: filteredBrandCars.length,
                         itemBuilder: (context, index) {
                           final carSpot = filteredBrandCars[index];
-                          return _buildBrandCarCard(carSpot, true);
+                          // Count how many cars of this model we own
+                          final normalizedModel = carSpot.model.toLowerCase().trim();
+                          final modelCount = filteredBrandCars.where((spot) => 
+                            spot.model.toLowerCase().trim() == normalizedModel
+                          ).length;
+                          return _buildBrandCarCard(carSpot, true, modelCount);
                         },
                       )
                 : filteredModels.isEmpty
@@ -754,12 +759,17 @@ class _DashboardPageState extends State<DashboardPage> {
                         itemBuilder: (context, index) {
                           final model = filteredModels[index];
                           // Case-insensitive model matching
+                          final normalizedModel = model.toLowerCase().trim();
                           final isOwned = brandCars.any((spot) => 
-                            spot.model.toLowerCase().trim() == model.toLowerCase().trim()
+                            spot.model.toLowerCase().trim() == normalizedModel
                           );
+                          // Count how many cars of this model we own
+                          final modelCount = brandCars.where((spot) => 
+                            spot.model.toLowerCase().trim() == normalizedModel
+                          ).length;
                           final carSpot = isOwned
                               ? brandCars.firstWhere((spot) => 
-                                  spot.model.toLowerCase().trim() == model.toLowerCase().trim()
+                                  spot.model.toLowerCase().trim() == normalizedModel
                                 )
                               : CarSpot(
                                   brand: brand,
@@ -769,7 +779,7 @@ class _DashboardPageState extends State<DashboardPage> {
                                   createdAt: DateTime.now(),
                                   updatedAt: DateTime.now(),
                                 );
-                          return _buildBrandCarCard(carSpot, isOwned);
+                          return _buildBrandCarCard(carSpot, isOwned, modelCount);
                         },
                       ),
           ),
@@ -778,58 +788,88 @@ class _DashboardPageState extends State<DashboardPage> {
     );
   }
 
-  Widget _buildBrandCarCard(CarSpot carSpot, bool isOwned) {
-    return InkWell(
-      onTap: isOwned
-          ? () {
-              setState(() {
-                _selectedCar = carSpot;
-              });
-            }
-          : null,
-      borderRadius: BorderRadius.circular(12),
-      child: Container(
-        decoration: BoxDecoration(
+  Widget _buildBrandCarCard(CarSpot carSpot, bool isOwned, int modelCount) {
+    return Stack(
+      clipBehavior: Clip.none,
+      children: [
+        InkWell(
+          onTap: isOwned
+              ? () {
+                  setState(() {
+                    _selectedCar = carSpot;
+                  });
+                }
+              : null,
           borderRadius: BorderRadius.circular(12),
-          border: Border.all(color: Colors.white.withValues(alpha: 0.3), width: 1),
-        ),
-        child: ClipRRect(
-          borderRadius: BorderRadius.circular(12),
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.stretch,
-            children: [
-              // Car Image or Placeholder
-              Expanded(
-                flex: 5,
-                child: isOwned && carSpot.imageUrls.isNotEmpty
-                    ? Image.network(
-                        carSpot.imageUrls.first,
-                        fit: BoxFit.cover,
-                        errorBuilder: (context, error, stackTrace) {
-                          return _buildNotFoundPlaceholder();
-                        },
-                      )
-                    : _buildNotFoundPlaceholder(),
-              ),
-              // Model name
-              Container(
-                padding: const EdgeInsets.symmetric(vertical: 12, horizontal: 8),
-                child: Text(
-                  carSpot.model,
-                  style: GoogleFonts.righteous(
-                    fontSize: 14,
-                    fontWeight: FontWeight.bold,
-                    color: Colors.white,
+          child: Container(
+            decoration: BoxDecoration(
+              borderRadius: BorderRadius.circular(12),
+              border: Border.all(color: Colors.white.withValues(alpha: 0.3), width: 1),
+            ),
+            child: ClipRRect(
+              borderRadius: BorderRadius.circular(12),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.stretch,
+                children: [
+                  // Car Image or Placeholder
+                  Expanded(
+                    flex: 5,
+                    child: isOwned && carSpot.imageUrls.isNotEmpty
+                        ? Image.network(
+                            carSpot.imageUrls.first,
+                            fit: BoxFit.cover,
+                            errorBuilder: (context, error, stackTrace) {
+                              return _buildNotFoundPlaceholder();
+                            },
+                          )
+                        : _buildNotFoundPlaceholder(),
                   ),
-                  textAlign: TextAlign.center,
-                  maxLines: 2,
-                  overflow: TextOverflow.ellipsis,
-                ),
+                  // Model name
+                  Container(
+                    padding: const EdgeInsets.symmetric(vertical: 12, horizontal: 8),
+                    child: Text(
+                      carSpot.model,
+                      style: GoogleFonts.righteous(
+                        fontSize: 14,
+                        fontWeight: FontWeight.bold,
+                        color: Colors.white,
+                      ),
+                      textAlign: TextAlign.center,
+                      maxLines: 2,
+                      overflow: TextOverflow.ellipsis,
+                    ),
+                  ),
+                ],
               ),
-            ],
+            ),
           ),
         ),
-      ),
+        // Count indicator badge (only number, no icons or words)
+        if (isOwned && modelCount > 1)
+          Positioned(
+            top: 8,
+            left: 8,
+            child: Container(
+              padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+              decoration: BoxDecoration(
+                color: Colors.purple[700]!.withValues(alpha: 0.9),
+                borderRadius: BorderRadius.circular(12),
+                border: Border.all(
+                  color: Colors.white,
+                  width: 1.5,
+                ),
+              ),
+              child: Text(
+                '$modelCount',
+                style: GoogleFonts.righteous(
+                  fontSize: 12,
+                  fontWeight: FontWeight.bold,
+                  color: Colors.white,
+                ),
+              ),
+            ),
+          ),
+      ],
     );
   }
 
@@ -937,17 +977,31 @@ class _DashboardPageState extends State<DashboardPage> {
                 ),
               ),
               const Spacer(),
-              // Car model name on the right
+              // Brand and model name on the right (same row)
               Flexible(
-                child: Text(
-                  carSpot.model,
-                  style: GoogleFonts.righteous(
-                    fontSize: 18,
-                    fontWeight: FontWeight.bold,
-                    color: Colors.white,
-                  ),
-                  textAlign: TextAlign.right,
-                  overflow: TextOverflow.ellipsis,
+                child: Row(
+                  mainAxisAlignment: MainAxisAlignment.end,
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    Text(
+                      carSpot.brand.replaceAll('_', ' '),
+                      style: GoogleFonts.righteous(
+                        fontSize: 14,
+                        color: Colors.white.withValues(alpha: 0.7),
+                      ),
+                      overflow: TextOverflow.ellipsis,
+                    ),
+                    const SizedBox(width: 8),
+                    Text(
+                      carSpot.model,
+                      style: GoogleFonts.righteous(
+                        fontSize: 18,
+                        fontWeight: FontWeight.bold,
+                        color: Colors.white,
+                      ),
+                      overflow: TextOverflow.ellipsis,
+                    ),
+                  ],
                 ),
               ),
             ],
@@ -1137,10 +1191,11 @@ class _DashboardPageState extends State<DashboardPage> {
   }
 
   void _showReplaceModelModal(BuildContext context, CarSpot carSpot) {
+    final outerContext = context; // Capture the outer context
     showDialog(
       context: context,
       barrierColor: Colors.black.withValues(alpha: 0.7),
-      builder: (context) => Dialog(
+      builder: (dialogContext) => Dialog(
         backgroundColor: Colors.transparent,
         insetPadding: const EdgeInsets.symmetric(horizontal: 40, vertical: 200),
         child: Container(
@@ -1170,8 +1225,71 @@ class _DashboardPageState extends State<DashboardPage> {
                   width: double.infinity,
                   child: ElevatedButton.icon(
                     onPressed: () async {
-                      Navigator.pop(context);
-                      // TODO: Implement gallery picker
+                      Navigator.pop(dialogContext); // Close the edit modal
+                      try {
+                        final XFile? pickedFile = await _picker.pickImage(
+                          source: ImageSource.gallery,
+                        );
+                        if (pickedFile != null) {
+                          final imageFile = File(pickedFile.path);
+                          // Show loading indicator
+                          showDialog(
+                            context: outerContext,
+                            barrierDismissible: false,
+                            builder: (loadingContext) => const Center(
+                              child: CircularProgressIndicator(color: Colors.white),
+                            ),
+                          );
+                          try {
+                            // Update the car spot with new image
+                            await _databaseService.updateCarSpot(
+                              id: carSpot.id!,
+                              imageFile: imageFile,
+                            );
+                            // Reload data to refresh the UI
+                            await _loadData();
+                            if (mounted) {
+                              Navigator.of(outerContext).pop(); // Close loading dialog
+                              ScaffoldMessenger.of(outerContext).showSnackBar(
+                                SnackBar(
+                                  content: Text(
+                                    'Image mise à jour avec succès',
+                                    style: GoogleFonts.righteous(),
+                                  ),
+                                  backgroundColor: Colors.green,
+                                ),
+                              );
+                            }
+                          } catch (e) {
+                            if (mounted) {
+                              Navigator.of(outerContext).pop(); // Close loading dialog
+                              ScaffoldMessenger.of(outerContext).showSnackBar(
+                                SnackBar(
+                                  content: Text(
+                                    'Erreur lors de la mise à jour: ${e.toString()}',
+                                    style: GoogleFonts.righteous(),
+                                  ),
+                                  backgroundColor: Colors.red,
+                                ),
+                              );
+                            }
+                            debugPrint('Dashboard: Error updating car spot image: $e');
+                          }
+                        }
+                      } catch (e) {
+                        debugPrint('Dashboard: Error picking image: $e');
+                        if (mounted) {
+                          ScaffoldMessenger.of(outerContext).showSnackBar(
+                            SnackBar(
+                              content: Text(
+                                'Erreur lors de la sélection de l\'image',
+                                style: GoogleFonts.righteous(),
+                              ),
+                              backgroundColor: Colors.red,
+                            ),
+                          );
+                        }
+                      }
                     },
                     icon: Icon(Icons.image, color: Colors.white),
                     label: Text(

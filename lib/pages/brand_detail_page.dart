@@ -244,17 +244,34 @@ class _BrandDetailPageState extends State<BrandDetailPage> {
                   spot.model.toLowerCase().trim() == model.toLowerCase().trim()
                 ) 
               : null;
-          return _buildModelCard(model, isOwned, carSpot);
+          // Count how many cars of this model we own
+          final normalizedModel = model.toLowerCase().trim();
+          final modelCount = _carSpots.where((spot) {
+            final spotModel = spot.model.toLowerCase().trim();
+            final matches = spotModel == normalizedModel;
+            if (matches) {
+              debugPrint('BrandDetailPage: Match found - Model: "$model" (normalized: "$normalizedModel") matches spot: "${spot.model}" (normalized: "$spotModel")');
+            }
+            return matches;
+          }).length;
+          debugPrint('BrandDetailPage: Model: "$model", isOwned: $isOwned, modelCount: $modelCount, total carSpots: ${_carSpots.length}');
+          if (modelCount > 1) {
+            debugPrint('BrandDetailPage: ✓ Will show badge for model: "$model" with count: $modelCount');
+          }
+          return _buildModelCard(model, isOwned, carSpot, modelCount);
         },
       ),
     );
   }
 
-  Widget _buildModelCard(String model, bool isOwned, CarSpot? carSpot) {
+  Widget _buildModelCard(String model, bool isOwned, CarSpot? carSpot, int modelCount) {
     final isSelected = _selectedCoverModel != null && 
                        _selectedCoverModel!.toLowerCase().trim() == model.toLowerCase().trim();
     
+    debugPrint('_buildModelCard: model="$model", isOwned=$isOwned, modelCount=$modelCount, willShowBadge=${isOwned && modelCount > 1}');
+    
     return Stack(
+      clipBehavior: Clip.none,
       children: [
         InkWell(
           onTap: isOwned && carSpot != null
@@ -290,25 +307,71 @@ class _BrandDetailPageState extends State<BrandDetailPage> {
                         ? Image.network(
                             carSpot.imageUrls.first,
                             fit: BoxFit.cover,
+                            width: double.infinity,
+                            height: double.infinity,
                             errorBuilder: (context, error, stackTrace) {
                               return _buildNotFoundPlaceholder();
                             },
                           )
                         : _buildNotFoundPlaceholder(),
                   ),
-                  // Model name
+                  // Model name with count indicator
                   Container(
                     padding: const EdgeInsets.symmetric(vertical: 12, horizontal: 8),
-                    child: Text(
-                      model,
-                      style: GoogleFonts.righteous(
-                        fontSize: 14,
-                        fontWeight: FontWeight.bold,
-                        color: Colors.white,
-                      ),
-                      textAlign: TextAlign.center,
-                      maxLines: 2,
-                      overflow: TextOverflow.ellipsis,
+                    child: Column(
+                      mainAxisSize: MainAxisSize.min,
+                      mainAxisAlignment: MainAxisAlignment.center,
+                      crossAxisAlignment: CrossAxisAlignment.center,
+                      children: [
+                        Text(
+                          model,
+                          style: GoogleFonts.righteous(
+                            fontSize: 14,
+                            fontWeight: FontWeight.bold,
+                            color: Colors.white,
+                          ),
+                          textAlign: TextAlign.center,
+                          maxLines: 2,
+                          overflow: TextOverflow.ellipsis,
+                        ),
+                        // Count indicator badge below model name
+                        if (isOwned && modelCount > 1)
+                          Padding(
+                            padding: const EdgeInsets.only(top: 8),
+                            child: Container(
+                              width: double.infinity,
+                              padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 5),
+                              decoration: BoxDecoration(
+                                color: Colors.purple[600]!,
+                                borderRadius: BorderRadius.circular(8),
+                                border: Border.all(
+                                  color: Colors.white,
+                                  width: 2,
+                                ),
+                              ),
+                              child: Row(
+                                mainAxisAlignment: MainAxisAlignment.center,
+                                mainAxisSize: MainAxisSize.min,
+                                children: [
+                                  Icon(
+                                    Icons.directions_car,
+                                    size: 14,
+                                    color: Colors.white,
+                                  ),
+                                  const SizedBox(width: 6),
+                                  Text(
+                                    '$modelCount possédée${modelCount > 1 ? 's' : ''}',
+                                    style: GoogleFonts.righteous(
+                                      fontSize: 11,
+                                      fontWeight: FontWeight.bold,
+                                      color: Colors.white,
+                                    ),
+                                  ),
+                                ],
+                              ),
+                            ),
+                          ),
+                      ],
                     ),
                   ),
                 ],

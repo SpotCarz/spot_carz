@@ -413,7 +413,10 @@ class DatabaseService {
       if (year != null) updates['year'] = year;
       
       if (imageFile != null) {
-        updates['image_urls'] = await uploadImage(imageFile);
+        final imageUrl = await uploadImage(imageFile);
+        if (imageUrl != null) {
+          updates['image_urls'] = [imageUrl];
+        }
       }
       
       updates['updated_at'] = DateTime.now().toIso8601String();
