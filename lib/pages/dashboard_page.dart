@@ -42,6 +42,7 @@ class _DashboardPageState extends State<DashboardPage> {
   bool _feedLoaded = false; // Track if feed has been loaded
   bool _feedLoadScheduled = false; // Prevent multiple load attempts
   Map<String, bool> _postLikedCache = {}; // Cache for like status
+  Map<String, bool> _userFollowedCache = {}; // Cache for follow status
 
   @override
   void initState() {
@@ -991,7 +992,16 @@ class _DashboardPageState extends State<DashboardPage> {
                       ),
                       overflow: TextOverflow.ellipsis,
                     ),
-                    const SizedBox(width: 8),
+                    Padding(
+                      padding: const EdgeInsets.symmetric(horizontal: 8),
+                      child: Text(
+                        '•',
+                        style: GoogleFonts.righteous(
+                          fontSize: 14,
+                          color: Colors.white.withValues(alpha: 0.5),
+                        ),
+                      ),
+                    ),
                     Text(
                       carSpot.model,
                       style: GoogleFonts.righteous(
@@ -1089,8 +1099,13 @@ class _DashboardPageState extends State<DashboardPage> {
                 ),
                 shape: RoundedRectangleBorder(
                   borderRadius: BorderRadius.circular(12),
+                  side: BorderSide(
+                    color: Colors.white.withValues(alpha: 0.2),
+                    width: 1,
+                  ),
                 ),
-                color: Colors.grey[900],
+                color: Colors.purple[900]!.withValues(alpha: 0.95),
+                elevation: 8,
                 onSelected: (value) {
                   switch (value) {
                     case 'post':
@@ -1112,50 +1127,83 @@ class _DashboardPageState extends State<DashboardPage> {
                 itemBuilder: (BuildContext context) => [
                   PopupMenuItem<String>(
                     value: 'post',
-                    child: Row(
-                      children: [
-                        Icon(Icons.thumb_up, color: Colors.purple[300], size: 20),
-                        const SizedBox(width: 12),
-                        Text(
-                          'Créer un post',
-                          style: GoogleFonts.righteous(
-                            fontSize: 14,
-                            color: Colors.white,
+                    child: Container(
+                      padding: const EdgeInsets.symmetric(vertical: 8),
+                      child: Row(
+                        children: [
+                          Container(
+                            padding: const EdgeInsets.all(6),
+                            decoration: BoxDecoration(
+                              color: Colors.purple[700]!.withValues(alpha: 0.3),
+                              borderRadius: BorderRadius.circular(8),
+                            ),
+                            child: Icon(Icons.thumb_up, color: Colors.purple[300], size: 18),
                           ),
-                        ),
-                      ],
+                          const SizedBox(width: 12),
+                          Text(
+                            'Créer un post',
+                            style: GoogleFonts.righteous(
+                              fontSize: 14,
+                              fontWeight: FontWeight.bold,
+                              color: Colors.white,
+                            ),
+                          ),
+                        ],
+                      ),
                     ),
                   ),
                   PopupMenuItem<String>(
                     value: 'edit',
-                    child: Row(
-                      children: [
-                        Icon(Icons.edit, color: Colors.teal[300], size: 20),
-                        const SizedBox(width: 12),
-                        Text(
-                          'Editer',
-                          style: GoogleFonts.righteous(
-                            fontSize: 14,
-                            color: Colors.white,
+                    child: Container(
+                      padding: const EdgeInsets.symmetric(vertical: 8),
+                      child: Row(
+                        children: [
+                          Container(
+                            padding: const EdgeInsets.all(6),
+                            decoration: BoxDecoration(
+                              color: Colors.teal[700]!.withValues(alpha: 0.3),
+                              borderRadius: BorderRadius.circular(8),
+                            ),
+                            child: Icon(Icons.edit, color: Colors.teal[300], size: 18),
                           ),
-                        ),
-                      ],
+                          const SizedBox(width: 12),
+                          Text(
+                            'Editer',
+                            style: GoogleFonts.righteous(
+                              fontSize: 14,
+                              fontWeight: FontWeight.bold,
+                              color: Colors.white,
+                            ),
+                          ),
+                        ],
+                      ),
                     ),
                   ),
                   PopupMenuItem<String>(
                     value: 'delete',
-                    child: Row(
-                      children: [
-                        Icon(Icons.delete, color: Colors.red[300], size: 20),
-                        const SizedBox(width: 12),
-                        Text(
-                          'Supprimer',
-                          style: GoogleFonts.righteous(
-                            fontSize: 14,
-                            color: Colors.white,
+                    child: Container(
+                      padding: const EdgeInsets.symmetric(vertical: 8),
+                      child: Row(
+                        children: [
+                          Container(
+                            padding: const EdgeInsets.all(6),
+                            decoration: BoxDecoration(
+                              color: Colors.red[700]!.withValues(alpha: 0.3),
+                              borderRadius: BorderRadius.circular(8),
+                            ),
+                            child: Icon(Icons.delete, color: Colors.red[300], size: 18),
                           ),
-                        ),
-                      ],
+                          const SizedBox(width: 12),
+                          Text(
+                            'Supprimer',
+                            style: GoogleFonts.righteous(
+                              fontSize: 14,
+                              fontWeight: FontWeight.bold,
+                              color: Colors.white,
+                            ),
+                          ),
+                        ],
+                      ),
                     ),
                   ),
                 ],
@@ -2118,15 +2166,14 @@ class _DashboardPageState extends State<DashboardPage> {
       builder: (context, setState) {
         return Column(
           children: [
-            // Header
+            // Header with Logo
             Padding(
               padding: const EdgeInsets.symmetric(horizontal: 20.0, vertical: 16.0),
               child: Column(
                 children: [
-                  // Logo and Title Row
+                  // Logo at top left
                   Row(
                     children: [
-                      // Logo
                       Container(
                         width: 50,
                         height: 50,
@@ -2136,7 +2183,7 @@ class _DashboardPageState extends State<DashboardPage> {
                         child: ClipRRect(
                           borderRadius: BorderRadius.circular(8),
                           child: Image.asset(
-                            'assets/images/logos/App_logo.png',
+                            'assets/images/logos/Avatar_logo.png',
                             width: 50,
                             height: 50,
                             fit: BoxFit.contain,
@@ -2166,109 +2213,129 @@ class _DashboardPageState extends State<DashboardPage> {
                         ),
                       ),
                       const Spacer(),
-                      // Title with icon
-                      Stack(
-                        alignment: Alignment.center,
-                        children: [
-                          // Ghosted text
-                          Text(
-                            'Car Meet',
-                            style: GoogleFonts.righteous(
-                              fontSize: 50,
-                              fontWeight: FontWeight.bold,
-                              color: Colors.white.withValues(alpha: 0.1),
-                            ),
-                          ),
-                          // Main text
-                          Row(
-                            mainAxisSize: MainAxisSize.min,
-                            children: [
-                              Icon(
-                                Icons.image,
-                                color: Colors.white,
-                                size: 28,
-                              ),
-                              const SizedBox(width: 8),
-                              Text(
-                                'Car Meet',
-                                style: GoogleFonts.righteous(
-                                  fontSize: 36,
-                                  fontWeight: FontWeight.bold,
-                                  color: Colors.white,
-                                ),
-                              ),
-                            ],
-                          ),
-                        ],
-                      ),
-                      const Spacer(),
-                      // Create Post Button
-                      ElevatedButton(
-                        onPressed: () async {
-                          final result = await Navigator.push(
-                            context,
-                            MaterialPageRoute(
-                              builder: (context) => CreatePostPage(),
-                            ),
-                          );
-                          // Refresh feed if post was created
-                          if (result == true) {
-                            debugPrint('Dashboard: Post created, refreshing feed...');
-                            setState(() {
-                              _feedLoaded = false;
-                              _feedLoadScheduled = false;
-                            });
-                            // Force reload the feed
-                            await _loadFeed(_selectedFeedTab);
-                            debugPrint('Dashboard: Feed refreshed, posts count: ${_feedPosts.length}');
-                          }
-                        },
-                        style: ElevatedButton.styleFrom(
-                          backgroundColor: Colors.purple[700],
-                          foregroundColor: Colors.white,
-                          padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
-                          shape: RoundedRectangleBorder(
-                            borderRadius: BorderRadius.circular(12),
-                          ),
-                        ),
-                        child: Text(
-                          'Créer un post',
-                          style: GoogleFonts.righteous(
-                            fontSize: 12,
-                            fontWeight: FontWeight.bold,
-                          ),
-                        ),
-                      ),
                     ],
                   ),
                   
                   const SizedBox(height: 16),
                   
-                  // Search Bar
-                  Container(
-                    decoration: BoxDecoration(
-                      color: Colors.grey[300]!.withValues(alpha: 0.3),
-                      borderRadius: BorderRadius.circular(12),
-                    ),
-                    child: TextField(
-                      style: GoogleFonts.righteous(color: Colors.white),
-                      decoration: InputDecoration(
-                        hintText: 'Faites une recherche sur le meeting',
-                        hintStyle: GoogleFonts.righteous(
-                          color: Colors.grey[400],
-                          fontSize: 14,
+                  // Title Section with Create Post Button
+                  Padding(
+                    padding: const EdgeInsets.symmetric(horizontal: 0.0),
+                    child: Column(
+                      children: [
+                        Stack(
+                          clipBehavior: Clip.none,
+                          children: [
+                            // Ghosted "Car Meet" text in background
+                            Positioned(
+                              left: -210,
+                              right: -110,
+                              top: -20,
+                              bottom: -20,
+                              child: Text(
+                                'Car Meet',
+                                style: GoogleFonts.righteous(
+                                  fontSize: 50,
+                                  fontWeight: FontWeight.bold,
+                                  color: Colors.white.withValues(alpha: 0.1),
+                                ),
+                                textAlign: TextAlign.center,
+                              ),
+                            ),
+                            // Main title with icon and button on same row
+                            Row(
+                              mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                              crossAxisAlignment: CrossAxisAlignment.center,
+                              children: [
+                                // Title with icon
+                                Row(
+                                  mainAxisAlignment: MainAxisAlignment.center,
+                                  children: [
+                                    Icon(
+                                      Icons.image,
+                                      color: Colors.white,
+                                      size: 28,
+                                    ),
+                                    const SizedBox(width: 8),
+                                    Text(
+                                      'Car Meet',
+                                      style: GoogleFonts.righteous(
+                                        fontSize: 36,
+                                        fontWeight: FontWeight.bold,
+                                        color: Colors.white,
+                                      ),
+                                    ),
+                                  ],
+                                ),
+                                // Create Post Button
+                                ElevatedButton(
+                                  onPressed: () async {
+                                    final result = await Navigator.push(
+                                      context,
+                                      MaterialPageRoute(
+                                        builder: (context) => CreatePostPage(),
+                                      ),
+                                    );
+                                    // Refresh feed if post was created
+                                    if (result == true) {
+                                      debugPrint('Dashboard: Post created, refreshing feed...');
+                                      setState(() {
+                                        _feedLoaded = false;
+                                        _feedLoadScheduled = false;
+                                      });
+                                      // Force reload the feed
+                                      await _loadFeed(_selectedFeedTab);
+                                      debugPrint('Dashboard: Feed refreshed, posts count: ${_feedPosts.length}');
+                                    }
+                                  },
+                                  style: ElevatedButton.styleFrom(
+                                    backgroundColor: Colors.purple[700],
+                                    foregroundColor: Colors.white,
+                                    padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+                                    shape: RoundedRectangleBorder(
+                                      borderRadius: BorderRadius.circular(12),
+                                    ),
+                                  ),
+                                  child: Text(
+                                    'Créer un post',
+                                    style: GoogleFonts.righteous(
+                                      fontSize: 12,
+                                      fontWeight: FontWeight.bold,
+                                    ),
+                                  ),
+                                ),
+                              ],
+                            ),
+                          ],
                         ),
-                        prefixIcon: Icon(Icons.search, color: Colors.grey[400]),
-                        border: InputBorder.none,
-                        contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
-                      ),
-                    ),
-                  ),
-                  
-                  const SizedBox(height: 16),
-                  
-                  // Tabs
-                  Row(
+                        
+                        const SizedBox(height: 16),
+                        
+                        // Search Bar
+                        Container(
+                          decoration: BoxDecoration(
+                            color: Colors.grey[300]!.withValues(alpha: 0.3),
+                            borderRadius: BorderRadius.circular(12),
+                          ),
+                          child: TextField(
+                            style: GoogleFonts.righteous(color: Colors.white),
+                            decoration: InputDecoration(
+                              hintText: 'Faites une recherche sur le meeting',
+                              hintStyle: GoogleFonts.righteous(
+                                color: Colors.grey[400],
+                                fontSize: 14,
+                              ),
+                              prefixIcon: Icon(Icons.search, color: Colors.grey[400]),
+                              border: InputBorder.none,
+                              contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+                            ),
+                          ),
+                        ),
+                        
+                        const SizedBox(height: 16),
+                        
+                        // Tabs
+                        Row(
                     children: [
                       Expanded(
                         child: GestureDetector(
@@ -2348,6 +2415,9 @@ class _DashboardPageState extends State<DashboardPage> {
                       ),
                     ],
                   ),
+                      ],
+                    ),
+                  ),
                 ],
               ),
             ),
@@ -2401,7 +2471,7 @@ class _DashboardPageState extends State<DashboardPage> {
                           },
                           color: Colors.purple[700],
                           child: ListView.builder(
-                            padding: const EdgeInsets.symmetric(horizontal: 20.0),
+                            padding: EdgeInsets.zero,
                             itemCount: _feedPosts.length,
                             itemBuilder: (context, index) {
                               final post = _feedPosts[index];
@@ -2433,12 +2503,23 @@ class _DashboardPageState extends State<DashboardPage> {
         posts = await _databaseService.getFollowingFeed();
       }
 
-      // Cache like statuses from posts
+      // Cache like statuses and follow statuses from posts
       _postLikedCache.clear();
+      _userFollowedCache.clear();
       for (var post in posts) {
         final postId = post['id'] as String?;
         if (postId != null) {
           _postLikedCache[postId] = post['is_liked'] as bool? ?? false;
+        }
+        // Check follow status for each post's user
+        final userId = post['user_id'] as String?;
+        if (userId != null) {
+          try {
+            final isFollowing = await _databaseService.isFollowingUser(userId);
+            _userFollowedCache[userId] = isFollowing;
+          } catch (e) {
+            debugPrint('Error checking follow status: $e');
+          }
         }
       }
 
@@ -2470,66 +2551,176 @@ class _DashboardPageState extends State<DashboardPage> {
       margin: const EdgeInsets.only(bottom: 24),
       decoration: BoxDecoration(
         color: Colors.transparent,
-        borderRadius: BorderRadius.circular(12),
+        borderRadius: BorderRadius.zero,
       ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.stretch,
         children: [
-          // User Info
-          Padding(
-            padding: const EdgeInsets.symmetric(horizontal: 8.0, vertical: 8.0),
-            child: Row(
+          // Header with Post Banner Background
+          SizedBox(
+            height: 80,
+            child: Stack(
+              clipBehavior: Clip.none,
               children: [
-                // Profile Picture
-                Container(
-                  width: 40,
-                  height: 40,
-                  decoration: BoxDecoration(
-                    shape: BoxShape.circle,
-                    color: Colors.purple[700],
-                  ),
-                  child: ClipOval(
-                    child: Image.asset(
-                      'assets/images/logos/Avatar_logo.png',
-                      fit: BoxFit.cover,
-                      errorBuilder: (context, error, stackTrace) {
-                        return Icon(
-                          Icons.person,
-                          color: Colors.white,
-                          size: 24,
-                        );
-                      },
+                // Post Banner Background - slightly transparent and overlapping car image
+                Positioned(
+                  top: 0,
+                  left: 0,
+                  right: 0,
+                  child: Opacity(
+                    opacity: 0.85, // Make banner slightly transparent
+                    child: Container(
+                      height: 88, // 80 + 8 for overlap
+                      child: Image.asset(
+                        'assets/images/cards/post_banner.png',
+                        width: double.infinity,
+                        fit: BoxFit.cover,
+                        errorBuilder: (context, error, stackTrace) {
+                          return Container(
+                            height: 88,
+                            decoration: BoxDecoration(
+                              gradient: LinearGradient(
+                                colors: [
+                                  Colors.purple[900]!,
+                                  Colors.purple[800]!,
+                                ],
+                              ),
+                            ),
+                          );
+                        },
+                      ),
                     ),
                   ),
                 ),
-                const SizedBox(width: 12),
-                // Username
-                Expanded(
-                  child: Text(
-                    post['username'] as String? ?? 'User',
-                    style: GoogleFonts.righteous(
-                      fontSize: 14,
-                      fontWeight: FontWeight.bold,
-                      color: Colors.white,
-                    ),
+                // User Info Overlay
+                Positioned.fill(
+                  child: Padding(
+                    padding: const EdgeInsets.symmetric(horizontal: 16.0, vertical: 12.0),
+                    child: Row(
+                    children: [
+                      // Profile Picture
+                      Container(
+                        width: 50,
+                        height: 50,
+                        decoration: BoxDecoration(
+                          shape: BoxShape.circle,
+                          border: Border.all(
+                            color: Colors.white,
+                            width: 2,
+                          ),
+                        ),
+                        child: ClipOval(
+                          child: Image.asset(
+                            'assets/images/logos/Avatar_logo.png',
+                            fit: BoxFit.cover,
+                            errorBuilder: (context, error, stackTrace) {
+                              return Container(
+                                color: Colors.purple[700],
+                                child: Icon(
+                                  Icons.person,
+                                  color: Colors.white,
+                                  size: 24,
+                                ),
+                              );
+                            },
+                          ),
+                        ),
+                      ),
+                      const SizedBox(width: 12),
+                      // Username
+                      Expanded(
+                        child: Text(
+                          post['username'] as String? ?? 'User',
+                          style: GoogleFonts.righteous(
+                            fontSize: 16,
+                            fontWeight: FontWeight.bold,
+                            color: Colors.white,
+                          ),
+                        ),
+                      ),
+                      // Follow Button
+                      Builder(
+                        builder: (context) {
+                          final userId = post['user_id'] as String? ?? '';
+                          final currentUserId = _authService.currentUser?.id ?? '';
+                          
+                          // Don't show follow button for own posts
+                          if (userId.isEmpty || userId == currentUserId) {
+                            return const SizedBox.shrink();
+                          }
+                          
+                          final isFollowing = _userFollowedCache[userId] ?? false;
+                          
+                          return GestureDetector(
+                            onTap: () async {
+                              try {
+                                final newFollowState = !isFollowing;
+                                
+                                // Optimistically update UI
+                                setState(() {
+                                  _userFollowedCache[userId] = newFollowState;
+                                });
+                                
+                                // Update database in background
+                                if (newFollowState) {
+                                  await _databaseService.followUser(userId);
+                                } else {
+                                  await _databaseService.unfollowUser(userId);
+                                }
+                              } catch (e) {
+                                debugPrint('Error toggling follow: $e');
+                                // Revert on error
+                                setState(() {
+                                  _userFollowedCache[userId] = isFollowing;
+                                });
+                              }
+                            },
+                            child: Container(
+                              padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 6),
+                              decoration: BoxDecoration(
+                                color: isFollowing 
+                                    ? Colors.purple[700]!.withValues(alpha: 0.3)
+                                    : Colors.purple[700],
+                                borderRadius: BorderRadius.circular(20),
+                                border: Border.all(
+                                  color: isFollowing 
+                                      ? Colors.purple[400]!
+                                      : Colors.transparent,
+                                  width: 1,
+                                ),
+                              ),
+                              child: Text(
+                                isFollowing ? 'Suivi' : 'Suivre',
+                                style: GoogleFonts.righteous(
+                                  fontSize: 12,
+                                  fontWeight: FontWeight.bold,
+                                  color: Colors.white,
+                                ),
+                              ),
+                            ),
+                          );
+                        },
+                      ),
+                    ],
                   ),
                 ),
-              ],
+              ),
+            ],
             ),
           ),
           
-          // Car Image
+          // Car Image - positioned to overlap with banner
           if (post['image_url'] != null && (post['image_url'] as String).isNotEmpty)
-            ClipRRect(
-              borderRadius: BorderRadius.circular(12),
+            Transform.translate(
+              offset: const Offset(0, -8), // Move up to overlap with banner
               child: Image.network(
                 post['image_url'] as String,
                 width: double.infinity,
-                height: 300,
+                height: 400,
                 fit: BoxFit.cover,
                 errorBuilder: (context, error, stackTrace) {
                   return Container(
-                    height: 300,
+                    height: 400,
                     color: Colors.grey[800],
                     child: Center(
                       child: Icon(
@@ -2543,130 +2734,133 @@ class _DashboardPageState extends State<DashboardPage> {
               ),
             ),
           
-          // Likes and Time
-          Padding(
-            padding: const EdgeInsets.symmetric(horizontal: 8.0, vertical: 12.0),
-            child: Row(
+          // Footer Section with Likes, Time, Caption, and Hashtags
+          Container(
+            padding: const EdgeInsets.all(16.0),
+            decoration: BoxDecoration(
+              color: Colors.transparent,
+              borderRadius: BorderRadius.zero,
+            ),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                Builder(
-                  builder: (context) {
-                    final postId = post['id'] as String? ?? '';
-                    final isLiked = _postLikedCache[postId] ?? (post['is_liked'] as bool? ?? false);
-                    final likesCount = post['likes_count'] as int? ?? 0;
-                    
-                    // Only show likes section if there are likes or user can like
-                    if (likesCount == 0 && !isLiked) {
-                      return const SizedBox.shrink();
-                    }
-                    
-                    return GestureDetector(
-                      onTap: () async {
-                        try {
-                          final newLikedState = !isLiked;
-                          
-                          // Optimistically update UI
-                          setState(() {
-                            _postLikedCache[postId] = newLikedState;
-                            post['is_liked'] = newLikedState;
-                            post['likes_count'] = newLikedState 
-                                ? (likesCount + 1) 
-                                : (likesCount > 0 ? likesCount - 1 : 0);
-                          });
-                          
-                          // Update database in background
-                          if (newLikedState) {
-                            await _databaseService.likePost(postId);
-                          } else {
-                            await _databaseService.unlikePost(postId);
-                          }
-                        } catch (e) {
-                          debugPrint('Error toggling like: $e');
-                          // Revert on error
-                          setState(() {
-                            _postLikedCache[postId] = isLiked;
-                            post['is_liked'] = isLiked;
-                            post['likes_count'] = likesCount;
-                          });
-                        }
-                      },
-                      child: Row(
+                Row(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    // Left side: Likes and Time
+                    Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Builder(
+                          builder: (context) {
+                            final postId = post['id'] as String? ?? '';
+                            final isLiked = _postLikedCache[postId] ?? (post['is_liked'] as bool? ?? false);
+                            final likesCount = post['likes_count'] as int? ?? 0;
+                            
+                            return GestureDetector(
+                              onTap: () async {
+                                try {
+                                  final newLikedState = !isLiked;
+                                  
+                                  // Optimistically update UI
+                                  setState(() {
+                                    _postLikedCache[postId] = newLikedState;
+                                    post['is_liked'] = newLikedState;
+                                    post['likes_count'] = newLikedState 
+                                        ? (likesCount + 1) 
+                                        : (likesCount > 0 ? likesCount - 1 : 0);
+                                  });
+                                  
+                                  // Update database in background
+                                  if (newLikedState) {
+                                    await _databaseService.likePost(postId);
+                                  } else {
+                                    await _databaseService.unlikePost(postId);
+                                  }
+                                } catch (e) {
+                                  debugPrint('Error toggling like: $e');
+                                  // Revert on error
+                                  setState(() {
+                                    _postLikedCache[postId] = isLiked;
+                                    post['is_liked'] = isLiked;
+                                    post['likes_count'] = likesCount;
+                                  });
+                                }
+                              },
+                              child: Row(
+                                children: [
+                                  Icon(
+                                    isLiked ? Icons.favorite : Icons.favorite_border,
+                                    color: isLiked ? Colors.pink : Colors.purple[400],
+                                    size: 32,
+                                  ),
+                                  const SizedBox(width: 8),
+                                  Text(
+                                    _formatLikes(post['likes_count'] as int? ?? 0),
+                                    style: GoogleFonts.righteous(
+                                      fontSize: 20,
+                                      fontWeight: FontWeight.bold,
+                                      color: Colors.white,
+                                    ),
+                                  ),
+                                ],
+                              ),
+                            );
+                          },
+                        ),
+                        const SizedBox(height: 4),
+                        Text(
+                          _getTimeAgo(DateTime.parse(post['created_at'] as String)),
+                          style: GoogleFonts.righteous(
+                            fontSize: 12,
+                            color: Colors.grey[400],
+                          ),
+                        ),
+                      ],
+                    ),
+                    const SizedBox(width: 16),
+                    // Right side: Caption
+                    Expanded(
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
                         children: [
-                          Icon(
-                            Icons.favorite,
-                            color: isLiked ? Colors.red : Colors.purple[400],
-                            size: 28,
-                          ),
-                          const SizedBox(width: 8),
-                          Text(
-                            _formatLikes(post['likes_count'] as int? ?? 0),
-                            style: GoogleFonts.righteous(
-                              fontSize: 16,
-                              fontWeight: FontWeight.bold,
-                              color: Colors.white,
+                          if (post['description'] != null && (post['description'] as String).isNotEmpty)
+                            Text(
+                              post['description'] as String,
+                              style: GoogleFonts.righteous(
+                                fontSize: 14,
+                                color: Colors.white,
+                              ),
+                              maxLines: 4,
+                              overflow: TextOverflow.ellipsis,
                             ),
-                          ),
                         ],
                       ),
-                    );
-                  },
+                    ),
+                  ],
                 ),
-                const Spacer(),
-                Text(
-                  _getTimeAgo(DateTime.parse(post['created_at'] as String)),
-                  style: GoogleFonts.righteous(
-                    fontSize: 12,
-                    color: Colors.grey[400],
+                
+                // Hashtags
+                if (post['hashtags'] != null && (post['hashtags'] as List).isNotEmpty)
+                  Padding(
+                    padding: const EdgeInsets.only(top: 12.0),
+                    child: Wrap(
+                      spacing: 8,
+                      runSpacing: 4,
+                      children: (post['hashtags'] as List)
+                          .map((hashtag) => Text(
+                                hashtag.toString(),
+                                style: GoogleFonts.righteous(
+                                  fontSize: 14,
+                                  color: Colors.purple[300],
+                                ),
+                              ))
+                          .toList(),
+                    ),
                   ),
-                ),
               ],
             ),
           ),
-          
-          // Description
-          if (post['description'] != null && (post['description'] as String).isNotEmpty)
-            Padding(
-              padding: const EdgeInsets.symmetric(horizontal: 8.0, vertical: 8.0),
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Text(
-                    post['description'] as String,
-                    style: GoogleFonts.righteous(
-                      fontSize: 14,
-                      color: Colors.white,
-                    ),
-                    maxLines: 3,
-                    overflow: TextOverflow.ellipsis,
-                  ),
-                  if ((post['description'] as String).length > 100)
-                    Text(
-                      'voir plus',
-                      style: GoogleFonts.righteous(
-                        fontSize: 14,
-                        color: Colors.purple[400],
-                      ),
-                    ),
-                ],
-              ),
-            ),
-          
-          // Hashtags
-          if (post['hashtags'] != null && (post['hashtags'] as List).isNotEmpty)
-            Padding(
-              padding: const EdgeInsets.symmetric(horizontal: 8.0, vertical: 4.0),
-              child: Wrap(
-                spacing: 8,
-                children: (post['hashtags'] as List)
-                    .map((hashtag) => Text(
-                          hashtag.toString(),
-                          style: GoogleFonts.righteous(
-                            fontSize: 14,
-                            color: Colors.purple[300],
-                          ),
-                        ))
-                    .toList(),
-              ),
-            ),
         ],
       ),
     );

@@ -898,6 +898,30 @@ class DatabaseService {
         }
       }
 
+      // Get user's display name (full_name) from profile
+      String? username;
+      try {
+        final userProfile = await _supabase.client
+            .from('user_profiles')
+            .select('full_name, username')
+            .eq('id', _supabase.currentUser!.id)
+            .maybeSingle();
+        
+        if (userProfile != null) {
+          final fullName = userProfile['full_name'] as String?;
+          final usernameFallback = userProfile['username'] as String?;
+          // Use full_name (display name) if available, fallback to username
+          username = fullName?.isNotEmpty == true 
+              ? fullName 
+              : (usernameFallback?.isNotEmpty == true ? usernameFallback : 'User');
+        } else {
+          username = 'User';
+        }
+      } catch (e) {
+        debugPrint('DatabaseService: Error fetching user profile for post: $e');
+        username = 'User'; // Fallback if profile fetch fails
+      }
+
       // Extract hashtags from description if not provided
       List<String> finalHashtags = hashtags ?? [];
       if (description != null && finalHashtags.isEmpty) {
@@ -911,6 +935,7 @@ class DatabaseService {
         'image_url': imageUrl,
         'description': description,
         'hashtags': finalHashtags,
+        'username': username, // Store username (display name) in post
         'likes_count': 0,
         'comments_count': 0,
       };
@@ -921,7 +946,7 @@ class DatabaseService {
           .select()
           .single();
 
-      debugPrint('DatabaseService: Post created successfully');
+      debugPrint('DatabaseService: Post created successfully with username: $username');
       return response;
     } catch (e) {
       debugPrint('DatabaseService: Error creating post: $e');
@@ -937,7 +962,60 @@ class DatabaseService {
             'limit_count': limit,
           });
       
-      return List<Map<String, dynamic>>.from(response);
+      final posts = List<Map<String, dynamic>>.from(response);
+      
+      // Enrich posts with full_name (display name) from user profiles
+      final userIds = posts
+          .map((post) => post['user_id'] as String?)
+          .where((id) => id != null)
+          .toSet()
+          .toList();
+      
+      Map<String, String?> userDisplayNames = {};
+      if (userIds.isNotEmpty) {
+        final profilesResponse = await _supabase.client
+            .from('user_profiles')
+            .select('id, full_name, username')
+            .inFilter('id', userIds);
+        
+        debugPrint('DatabaseService: Fetched ${(profilesResponse as List).length} user profiles for enrichment');
+        for (var profile in profilesResponse as List) {
+          final userId = profile['id'] as String;
+          final fullName = profile['full_name'] as String?;
+          final username = profile['username'] as String?;
+          // Use full_name (display name) if available, fallback to username
+          final displayName = fullName?.isNotEmpty == true ? fullName : (username?.isNotEmpty == true ? username : null);
+          userDisplayNames[userId] = displayName;
+          debugPrint('DatabaseService: User $userId - full_name: "$fullName", username: "$username", displayName: "$displayName"');
+        }
+      }
+      
+      // Process posts to use full_name (display name) if available
+      final processedPosts = posts.map((post) {
+        final postMap = Map<String, dynamic>.from(post);
+        // Use username from post if available (stored when post was created)
+        // Otherwise, use full_name (display name) from user profile
+        final userId = postMap['user_id'] as String?;
+        final postUsername = postMap['username'] as String?;
+        
+        // If post already has username stored, use it (preferred for performance)
+        if (postUsername != null && postUsername.isNotEmpty && postUsername != 'User') {
+          // Post already has username, no need to enrich
+          return postMap;
+        }
+        
+        // Otherwise, enrich from user profile
+        if (userId != null && userDisplayNames.containsKey(userId)) {
+          final displayName = userDisplayNames[userId];
+          postMap['username'] = displayName?.isNotEmpty == true ? displayName : (postUsername?.isNotEmpty == true ? postUsername : 'User');
+          debugPrint('DatabaseService: Following post ${postMap['id']} - userId: $userId, postUsername: "$postUsername", enrichedUsername: "${postMap['username']}"');
+        } else if (postMap['username'] == null || (postMap['username'] as String).isEmpty) {
+          postMap['username'] = 'User';
+        }
+        return postMap;
+      }).toList();
+      
+      return processedPosts;
     } catch (e) {
       debugPrint('DatabaseService: Error getting following feed: $e');
       // Fallback to regular query if function doesn't exist
@@ -986,12 +1064,13 @@ class DatabaseService {
         if (userIds.isNotEmpty) {
           final profilesResponse = await _supabase.client
               .from('user_profiles')
-              .select('id, username')
+              .select('id, full_name, username')
               .inFilter('id', userIds);
           
           for (var profile in profilesResponse as List) {
             userProfilesMap[profile['id'] as String] = {
-              'username': profile['username'] ?? 'User',
+              'full_name': profile['full_name'],
+              'username': profile['username'],
             };
           }
         }
@@ -1011,13 +1090,25 @@ class DatabaseService {
           final postMap = Map<String, dynamic>.from(post);
           postMap['is_liked'] = likedPostIds.contains(post['id']);
           
-          // Add user profile info
+          // Use username from post if available (stored when post was created)
+          // Otherwise, use full_name (display name) from user profile
           final userId = post['user_id'] as String?;
-          if (userId != null && userProfilesMap.containsKey(userId)) {
+          final postUsername = postMap['username'] as String?;
+          
+          // If post already has username stored and it's valid, use it
+          if (postUsername != null && postUsername.isNotEmpty && postUsername != 'User') {
+            // Post already has username, no need to enrich
+          } else if (userId != null && userProfilesMap.containsKey(userId)) {
+            // Otherwise, enrich from user profile
             final userProfile = userProfilesMap[userId]!;
-            postMap['username'] = userProfile['username'] ?? 'User';
+            final fullName = userProfile['full_name'] as String?;
+            final usernameFallback = userProfile['username'] as String?;
+            final displayName = fullName?.isNotEmpty == true 
+                ? fullName 
+                : (usernameFallback?.isNotEmpty == true ? usernameFallback : 'User');
+            postMap['username'] = displayName;
           } else {
-            postMap['username'] = 'User';
+            postMap['username'] = postUsername?.isNotEmpty == true ? postUsername : 'User';
           }
           // avatar_url doesn't exist in user_profiles table
           postMap['avatar_url'] = null;
@@ -1056,11 +1147,52 @@ class DatabaseService {
         return await _getDiscoveryFeedFallback(limit);
       }
       
+      // Enrich posts with full_name (display name) from user profiles
+      final userIds = posts
+          .map((post) => post['user_id'] as String?)
+          .where((id) => id != null)
+          .toSet()
+          .toList();
+      
+      Map<String, String?> userDisplayNames = {};
+      if (userIds.isNotEmpty) {
+        final profilesResponse = await _supabase.client
+            .from('user_profiles')
+            .select('id, full_name, username')
+            .inFilter('id', userIds);
+        
+        debugPrint('DatabaseService: Fetched ${(profilesResponse as List).length} user profiles for discovery feed enrichment');
+        for (var profile in profilesResponse as List) {
+          final userId = profile['id'] as String;
+          final fullName = profile['full_name'] as String?;
+          final username = profile['username'] as String?;
+          // Use full_name (display name) if available, fallback to username
+          final displayName = fullName?.isNotEmpty == true ? fullName : (username?.isNotEmpty == true ? username : null);
+          userDisplayNames[userId] = displayName;
+          debugPrint('DatabaseService: User $userId - full_name: "$fullName", username: "$username", displayName: "$displayName"');
+        }
+      }
+      
       // Process posts to ensure they have the right structure
       final processedPosts = posts.map((post) {
         final postMap = Map<String, dynamic>.from(post);
-        // Ensure username is set
-        if (postMap['username'] == null) {
+        // Use username from post if available (stored when post was created)
+        // Otherwise, use full_name (display name) from user profile
+        final userId = postMap['user_id'] as String?;
+        final postUsername = postMap['username'] as String?;
+        
+        // If post already has username stored, use it (preferred for performance)
+        if (postUsername != null && postUsername.isNotEmpty && postUsername != 'User') {
+          // Post already has username, no need to enrich
+          return postMap;
+        }
+        
+        // Otherwise, enrich from user profile
+        if (userId != null && userDisplayNames.containsKey(userId)) {
+          final displayName = userDisplayNames[userId];
+          postMap['username'] = displayName?.isNotEmpty == true ? displayName : (postUsername?.isNotEmpty == true ? postUsername : 'User');
+          debugPrint('DatabaseService: Discovery post ${postMap['id']} - userId: $userId, postUsername: "$postUsername", enrichedUsername: "${postMap['username']}"');
+        } else if (postMap['username'] == null || (postMap['username'] as String).isEmpty) {
           postMap['username'] = 'User';
         }
         return postMap;
@@ -1103,12 +1235,13 @@ class DatabaseService {
       if (userIds.isNotEmpty) {
         final profilesResponse = await _supabase.client
             .from('user_profiles')
-            .select('id, username')
+            .select('id, full_name, username')
             .inFilter('id', userIds);
         
         for (var profile in profilesResponse as List) {
           userProfilesMap[profile['id'] as String] = {
-            'username': profile['username'] ?? 'User',
+            'full_name': profile['full_name'],
+            'username': profile['username'],
           };
         }
       }
@@ -1131,13 +1264,25 @@ class DatabaseService {
         final postMap = Map<String, dynamic>.from(post);
         postMap['is_liked'] = likedPostIds.contains(post['id']);
         
-        // Add user profile info from the map we fetched
+        // Use username from post if available (stored when post was created)
+        // Otherwise, use full_name (display name) from user profile
         final userId = post['user_id'] as String?;
-        if (userId != null && userProfilesMap.containsKey(userId)) {
+        final postUsername = postMap['username'] as String?;
+        
+        // If post already has username stored and it's valid, use it
+        if (postUsername != null && postUsername.isNotEmpty && postUsername != 'User') {
+          // Post already has username, no need to enrich
+        } else if (userId != null && userProfilesMap.containsKey(userId)) {
+          // Otherwise, enrich from user profile
           final userProfile = userProfilesMap[userId]!;
-          postMap['username'] = userProfile['username'] ?? 'User';
+          final fullName = userProfile['full_name'] as String?;
+          final usernameFallback = userProfile['username'] as String?;
+          final displayName = fullName?.isNotEmpty == true 
+              ? fullName 
+              : (usernameFallback?.isNotEmpty == true ? usernameFallback : 'User');
+          postMap['username'] = displayName;
         } else {
-          postMap['username'] = 'User';
+          postMap['username'] = postUsername?.isNotEmpty == true ? postUsername : 'User';
         }
         // avatar_url doesn't exist in user_profiles table
         postMap['avatar_url'] = null;

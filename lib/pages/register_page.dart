@@ -16,6 +16,7 @@ class RegisterPage extends StatefulWidget {
 class _RegisterPageState extends State<RegisterPage> {
   final _formKey = GlobalKey<FormState>();
   final _emailController = TextEditingController();
+  final _displayNameController = TextEditingController();
   final _passwordController = TextEditingController();
   bool _isPasswordVisible = false;
   bool _isLoading = false;
@@ -26,6 +27,7 @@ class _RegisterPageState extends State<RegisterPage> {
   @override
   void dispose() {
     _emailController.dispose();
+    _displayNameController.dispose();
     _passwordController.dispose();
     super.dispose();
   }
@@ -38,13 +40,12 @@ class _RegisterPageState extends State<RegisterPage> {
 
       try {
         final email = _emailController.text.trim();
-        debugPrint('Attempting sign up with email: $email');
-        // Use email prefix as fullName
-        final emailPrefix = email.split('@')[0];
+        final displayName = _displayNameController.text.trim();
+        debugPrint('Attempting sign up with email: $email, displayName: $displayName');
         final response = await _authService.signUp(
           email: email,
           password: _passwordController.text,
-          fullName: emailPrefix,
+          fullName: displayName.isNotEmpty ? displayName : email.split('@')[0],
         );
         debugPrint('Sign up response: ${response.user?.email}');
 
@@ -55,7 +56,7 @@ class _RegisterPageState extends State<RegisterPage> {
             try {
               await _databaseService.createUserProfile(
                 email: email,
-                fullName: emailPrefix,
+                fullName: displayName.isNotEmpty ? displayName : email.split('@')[0],
               );
             } catch (e) {
               debugPrint('Error creating user profile: $e');
@@ -163,6 +164,43 @@ class _RegisterPageState extends State<RegisterPage> {
                   key: _formKey,
                   child: Column(
                     children: [
+
+                      // Display Name Field
+                      Container(
+                        decoration: BoxDecoration(
+                          color: const Color(0xFF1A0033),
+                          borderRadius: BorderRadius.circular(20),
+                          border: Border.all(color: Colors.white, width: 1),
+                        ),
+                        child: TextFormField(
+                          controller: _displayNameController,
+                          keyboardType: TextInputType.text,
+                          style: GoogleFonts.righteous(
+                            color: Colors.white,
+                            fontSize: 16,
+                          ),
+                          decoration: InputDecoration(
+                            hintText: 'Display Name',
+                            hintStyle: GoogleFonts.righteous(
+                              color: Colors.grey[400],
+                              fontSize: 16,
+                            ),
+                            border: InputBorder.none,
+                            contentPadding: const EdgeInsets.symmetric(horizontal: 20, vertical: 18),
+                          ),
+                          validator: (value) {
+                            if (value == null || value.isEmpty) {
+                              return 'Please enter a display name';
+                            }
+                            if (value.length < 2) {
+                              return 'Display name must be at least 2 characters';
+                            }
+                            return null;
+                          },
+                        ),
+                      ),
+                      
+                      const SizedBox(height: 20),
                       // Email Field
                       Container(
                         decoration: BoxDecoration(
@@ -199,6 +237,7 @@ class _RegisterPageState extends State<RegisterPage> {
                       ),
                       
                       const SizedBox(height: 20),
+                  
                       
                       // Password Field
                       Container(
